@@ -1,13 +1,15 @@
-
 import streamlit as st
 import numpy as np
 import pandas as pd
 import requests
 import matplotlib.pyplot as plt
+from fpdf import FPDF
+import base64
+import tempfile
 
 # --- Configuración inicial ---
-st.set_page_config(page_title="Simulador Hipotecario Avanzado", layout="wide")
-st.title("🏡 Simulador Hipotecario Avanzado")
+st.set_page_config(page_title="🏡 Simulador Hipotecario Avanzado by ADOLF", layout="wide")
+st.title("🏡 Simulador Hipotecario Avanzado by ADOLF")
 
 # --- Valor UF ---
 try:
@@ -24,7 +26,8 @@ st.markdown(f"**Perfil seleccionado:** `{perfil}`")
 col1, col2 = st.columns(2)
 with col1:
     precio_uf = st.number_input("Precio de la vivienda (UF)", value=4000.0, min_value=1.0)
-    pie_uf = st.number_input("Pie inicial (UF)", value=800.0, min_value=0.0, max_value=precio_uf)
+    pie_minimo = precio_uf * 0.1
+    pie_uf = st.number_input("Pie inicial (UF)", value=800.0, min_value=pie_minimo, max_value=precio_uf)
     plazo = st.slider("Plazo del crédito (años)", min_value=1, max_value=30, value=20)
 with col2:
     tasa_anual = st.number_input("Tasa de interés anual (%)", value=4.0) / 100
@@ -58,6 +61,7 @@ if st.button("🔄 Calcular Crédito"):
     interes_total = 0
     capital_total = 0
     anio_salto = None
+    resumen_anual = {}
 
     for mes in range(1, n_meses + 1):
         interes_mes = saldo * tasa_mensual
@@ -73,22 +77,25 @@ if st.button("🔄 Calcular Crédito"):
         if not anio_salto and capital_mes > interes_mes:
             anio_salto = mes // 12 + 1
 
-        tabla.append([mes, mes//12 + 1, capital_mes, interes_mes, dividendo_uf, saldo, capital_total, interes_total])
+        anio = mes // 12 + 1
+        resumen_anual.setdefault(anio, {"interes": 0, "capital": 0})
+        resumen_anual[anio]["interes"] += interes_mes
+        resumen_anual[anio]["capital"] += capital_mes
+
+        tabla.append([mes, anio, capital_mes, interes_mes, dividendo_uf, saldo, capital_total, interes_total])
 
     df = pd.DataFrame(tabla, columns=[
         "Mes", "Año", "Capital Pagado UF", "Interés Pagado UF",
         "Dividendo UF", "Saldo Pendiente UF", "Capital Acum UF", "Interés Acum UF"
     ])
 
-    # --- Resultados actualizados completamente ---
+    # --- Resultados ---
     st.subheader("📊 Resultados del Crédito")
     col1, col2 = st.columns(2)
-
     with col1:
         st.metric("Monto del crédito", f"{credito_uf:,.2f} UF", f"~{credito_uf * uf_clp:,.0f} CLP")
         st.markdown(f"📊 Esto equivale al **{credito_porcentaje:.1f}%** del precio de la vivienda.")
         st.metric("Dividendo mensual", f"{dividendo_uf:,.2f} UF", f"~{dividendo_clp:,.0f} CLP")
-
     with col2:
         st.metric("Pie inicial", f"{pie_uf:,.2f} UF", f"~{pie_uf * uf_clp:,.0f} CLP")
         st.markdown(f"📊 Esto equivale al **{pie_porcentaje:.1f}%** del precio de la vivienda.")
@@ -98,7 +105,7 @@ if st.button("🔄 Calcular Crédito"):
     if perfil == "Comprador para vivir" and anio_salto:
         st.info(f"📌 A partir del **año {anio_salto}** pagarás más capital que intereses.")
 
-    # --- Tabla de amortización y exportación ---
+    # --- Tabla y descarga CSV ---
     with st.expander("📅 Ver tabla de amortización"):
         st.dataframe(df.style.format({
             "Capital Pagado UF": "{:.2f}", "Interés Pagado UF": "{:.2f}",
@@ -107,8 +114,51 @@ if st.button("🔄 Calcular Crédito"):
         }), height=400)
         st.download_button("📥 Descargar tabla en CSV", data=df.to_csv(index=False), file_name="amortizacion.csv", mime="text/csv")
 
-    # --- Gráfico de distribución ---
-    fig, ax = plt.subplots()
-    ax.pie([capital_total, interes_total], labels=["Capital", "Interés"], autopct="%1.1f%%", startangle=90)
-    ax.set_title("Distribución del pago total")
-    st.pyplot(fig)
+    # --- Gráfico Pie ---
+    fig1, ax1 = plt.subplots()
+    ax1.pie([capital_total, interes_total], labels=["Capital", "Interés"], autopct="%1.1f%%", startangle=90)
+    ax1.set_title("Distribución total del pago")
+    st.pyplot(fig1)
+
+    # --- Gráfico Interés vs Capital por año ---
+    st.subheader("📈 Evolución Anual Capital vs Interés")
+    años = list(resumen_anual.keys())
+    capitales = [resumen_anual[a]["capital"] for a in años]
+    intereses = [resumen_anual[a]["interes"] for a in años]
+
+    fig2, ax2 = plt.subplots()
+    ax2.bar(años, capitales, label="Capital", color="#4CAF50")
+    ax2.bar(años, intereses, bottom=capitales, label="Interés", color="#F44336")
+    ax2.set_xlabel("Año")
+    ax2.set_ylabel("Monto en UF")
+    ax2.set_title("Capital vs Interés por Año")
+    ax2.legend()
+    st.pyplot(fig2)
+
+    # --- Exportar a PDF ---
+    def exportar_pdf():
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 16)
+        pdf.cell(200, 10, "Simulador Hipotecario Avanzado by ADOLF", ln=True, align="C")
+        pdf.set_font("Arial", "", 12)
+        pdf.cell(200, 10, f"Valor UF: {uf_clp:,.0f} CLP", ln=True)
+        pdf.cell(200, 10, f"Monto Crédito: {credito_uf:,.2f} UF (~{credito_uf * uf_clp:,.0f} CLP)", ln=True)
+        pdf.cell(200, 10, f"Pie Inicial: {pie_uf:,.2f} UF (~{pie_uf * uf_clp:,.0f} CLP)", ln=True)
+        pdf.cell(200, 10, f"Dividendo mensual aprox: {dividendo_uf:,.2f} UF (~{dividendo_clp:,.0f} CLP)", ln=True)
+        pdf.set_text_color(220, 220, 220)
+        pdf.set_font("Arial", "B", 50)
+        pdf.rotate(45)
+        pdf.text(30, 200, "Simulado por App ADOLF")
+        pdf.rotate(0)
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+        pdf.output(tmp.name)
+        with open(tmp.name, "rb") as f:
+            pdf_data = f.read()
+        b64 = base64.b64encode(pdf_data).decode()
+        href = f'<a href="data:application/pdf;base64,{b64}" download="simulacion.pdf">📄 Descargar PDF</a>'
+        st.markdown(href, unsafe_allow_html=True)
+
+    st.markdown("---")
+    st.markdown("### 🧾 Exportar a PDF")
+    exportar_pdf()
