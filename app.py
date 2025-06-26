@@ -1,3 +1,4 @@
+%%writefile app.py
 import streamlit as st
 import numpy as np
 import pandas as pd
@@ -37,74 +38,77 @@ if prepago:
     prepago_monto = st.number_input("Monto de prepago parcial (UF)", min_value=0.0, value=0.0)
     prepago_ano = st.number_input("Año en que harás prepago", min_value=1, max_value=plazo, value=5)
 
-# --- Cálculos ---
-credito_uf = max(precio_uf - pie_uf, 0)
-credito_porcentaje = (credito_uf / precio_uf) * 100 if precio_uf > 0 else 0
-pie_porcentaje = (pie_uf / precio_uf) * 100 if precio_uf > 0 else 0
+# --- Botón para calcular ---
+if st.button("🔄 Calcular Crédito"):
 
-tasa_mensual = (1 + tasa_anual)**(1/12) - 1
-n_meses = plazo * 12
-dividendo_uf = (credito_uf * tasa_mensual) / (1 - (1 + tasa_mensual)**-n_meses) if credito_uf > 0 else 0
-dividendo_clp = dividendo_uf * uf_clp + seguro_mensual
-sueldo_necesario = dividendo_clp / 0.25
+    # --- Cálculos ---
+    credito_uf = max(precio_uf - pie_uf, 0)
+    credito_porcentaje = (credito_uf / precio_uf) * 100 if precio_uf > 0 else 0
+    pie_porcentaje = (pie_uf / precio_uf) * 100 if precio_uf > 0 else 0
 
-# --- Tabla de amortización ---
-saldo = credito_uf
-tabla = []
-interes_total = 0
-capital_total = 0
-anio_salto = None
+    tasa_mensual = (1 + tasa_anual)**(1/12) - 1
+    n_meses = plazo * 12
+    dividendo_uf = (credito_uf * tasa_mensual) / (1 - (1 + tasa_mensual)**-n_meses) if credito_uf > 0 else 0
+    dividendo_clp = dividendo_uf * uf_clp + seguro_mensual
+    sueldo_necesario = dividendo_clp / 0.25
 
-for mes in range(1, n_meses + 1):
-    interes_mes = saldo * tasa_mensual
-    capital_mes = dividendo_uf - interes_mes
+    # --- Tabla de amortización ---
+    saldo = credito_uf
+    tabla = []
+    interes_total = 0
+    capital_total = 0
+    anio_salto = None
 
-    if prepago and mes == prepago_ano * 12:
-        saldo -= prepago_monto
+    for mes in range(1, n_meses + 1):
+        interes_mes = saldo * tasa_mensual
+        capital_mes = dividendo_uf - interes_mes
 
-    saldo -= capital_mes
-    interes_total += interes_mes
-    capital_total += capital_mes
+        if prepago and mes == prepago_ano * 12:
+            saldo -= prepago_monto
 
-    if not anio_salto and capital_mes > interes_mes:
-        anio_salto = mes // 12 + 1
+        saldo -= capital_mes
+        interes_total += interes_mes
+        capital_total += capital_mes
 
-    tabla.append([mes, mes//12 + 1, capital_mes, interes_mes, dividendo_uf, saldo, capital_total, interes_total])
+        if not anio_salto and capital_mes > interes_mes:
+            anio_salto = mes // 12 + 1
 
-df = pd.DataFrame(tabla, columns=[
-    "Mes", "Año", "Capital Pagado UF", "Interés Pagado UF",
-    "Dividendo UF", "Saldo Pendiente UF", "Capital Acum UF", "Interés Acum UF"
-])
+        tabla.append([mes, mes//12 + 1, capital_mes, interes_mes, dividendo_uf, saldo, capital_total, interes_total])
 
-# --- Resultados actualizados completamente ---
-st.subheader("📊 Resultados del Crédito")
-col1, col2 = st.columns(2)
+    df = pd.DataFrame(tabla, columns=[
+        "Mes", "Año", "Capital Pagado UF", "Interés Pagado UF",
+        "Dividendo UF", "Saldo Pendiente UF", "Capital Acum UF", "Interés Acum UF"
+    ])
 
-with col1:
-    st.metric("Monto del crédito", f"{credito_uf:,.2f} UF", f"~{credito_uf * uf_clp:,.0f} CLP")
-    st.markdown(f"📊 Esto equivale al **{credito_porcentaje:.1f}%** del precio de la vivienda.")
-    st.metric("Dividendo mensual", f"{dividendo_uf:,.2f} UF", f"~{dividendo_clp:,.0f} CLP")
+    # --- Resultados actualizados completamente ---
+    st.subheader("📊 Resultados del Crédito")
+    col1, col2 = st.columns(2)
 
-with col2:
-    st.metric("Pie inicial", f"{pie_uf:,.2f} UF", f"~{pie_uf * uf_clp:,.0f} CLP")
-    st.markdown(f"📊 Esto equivale al **{pie_porcentaje:.1f}%** del precio de la vivienda.")
-    st.metric("Intereses totales", f"{interes_total:,.2f} UF", f"~{interes_total * uf_clp:,.0f} CLP")
-    st.metric("Sueldo requerido (25%)", f"~{sueldo_necesario:,.0f} CLP")
+    with col1:
+        st.metric("Monto del crédito", f"{credito_uf:,.2f} UF", f"~{credito_uf * uf_clp:,.0f} CLP")
+        st.markdown(f"📊 Esto equivale al **{credito_porcentaje:.1f}%** del precio de la vivienda.")
+        st.metric("Dividendo mensual", f"{dividendo_uf:,.2f} UF", f"~{dividendo_clp:,.0f} CLP")
 
-if perfil == "Comprador para vivir" and anio_salto:
-    st.info(f"📌 A partir del **año {anio_salto}** pagarás más capital que intereses.")
+    with col2:
+        st.metric("Pie inicial", f"{pie_uf:,.2f} UF", f"~{pie_uf * uf_clp:,.0f} CLP")
+        st.markdown(f"📊 Esto equivale al **{pie_porcentaje:.1f}%** del precio de la vivienda.")
+        st.metric("Intereses totales", f"{interes_total:,.2f} UF", f"~{interes_total * uf_clp:,.0f} CLP")
+        st.metric("Sueldo requerido (25%)", f"~{sueldo_necesario:,.0f} CLP")
 
-# --- Tabla de amortización y exportación ---
-with st.expander("📅 Ver tabla de amortización"):
-    st.dataframe(df.style.format({
-        "Capital Pagado UF": "{:.2f}", "Interés Pagado UF": "{:.2f}",
-        "Dividendo UF": "{:.2f}", "Saldo Pendiente UF": "{:.2f}",
-        "Capital Acum UF": "{:.2f}", "Interés Acum UF": "{:.2f}"
-    }), height=400)
-    st.download_button("📥 Descargar tabla en CSV", data=df.to_csv(index=False), file_name="amortizacion.csv", mime="text/csv")
+    if perfil == "Comprador para vivir" and anio_salto:
+        st.info(f"📌 A partir del **año {anio_salto}** pagarás más capital que intereses.")
 
-# --- Gráfico de distribución ---
-fig, ax = plt.subplots()
-ax.pie([capital_total, interes_total], labels=["Capital", "Interés"], autopct="%1.1f%%", startangle=90)
-ax.set_title("Distribución del pago total")
-st.pyplot(fig)
+    # --- Tabla de amortización y exportación ---
+    with st.expander("📅 Ver tabla de amortización"):
+        st.dataframe(df.style.format({
+            "Capital Pagado UF": "{:.2f}", "Interés Pagado UF": "{:.2f}",
+            "Dividendo UF": "{:.2f}", "Saldo Pendiente UF": "{:.2f}",
+            "Capital Acum UF": "{:.2f}", "Interés Acum UF": "{:.2f}"
+        }), height=400)
+        st.download_button("📥 Descargar tabla en CSV", data=df.to_csv(index=False), file_name="amortizacion.csv", mime="text/csv")
+
+    # --- Gráfico de distribución ---
+    fig, ax = plt.subplots()
+    ax.pie([capital_total, interes_total], labels=["Capital", "Interés"], autopct="%1.1f%%", startangle=90)
+    ax.set_title("Distribución del pago total")
+    st.pyplot(fig)
