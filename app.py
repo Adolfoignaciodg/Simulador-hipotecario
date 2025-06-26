@@ -1,111 +1,68 @@
 import streamlit as st
-import pandas as pd
 import numpy as np
+import pandas as pd
 import requests
-import plotly.graph_objects as go
+import matplotlib.pyplot as plt
 
-# --- Estilos CSS para look premium ---
-st.markdown("""
-<style>
-/* Fuente elegante */
-body, .css-1d391kg, .stTextInput, .stNumberInput, .stButton>button {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Fondo blanco con sombra para contenedores */
-.css-1y4p8pa {
-    background-color: #f9fafb;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 3px 10px rgb(0 0 0 / 0.1);
-}
-
-/* Botón personalizado */
-.stButton>button {
-    background-color: #1f77b4;
-    color: white;
-    font-weight: 600;
-    border-radius: 6px;
-    padding: 10px 24px;
-    transition: background-color 0.3s ease;
-}
-.stButton>button:hover {
-    background-color: #145a86;
-}
-
-/* Título principal */
-h1 {
-    color: #0f3057;
-    font-weight: 700;
-    font-size: 3rem;
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-/* KPIs estilo tarjeta */
-.kpi {
-    background-color: white;
-    border-radius: 8px;
-    padding: 20px;
-    text-align: center;
-    box-shadow: 0 3px 6px rgb(0 0 0 / 0.1);
-    margin: 10px;
-}
-.kpi h3 {
-    margin: 0;
-    color: #0f3057;
-}
-.kpi span {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #2a9d8f;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# --- Configuración de página ---
+# --- Configuración general ---
 st.set_page_config(page_title="🏡 Simulador Hipotecario Avanzado by Adolf", layout="wide")
+st.markdown("<h1 style='text-align: center;'>🏡 Simulador Hipotecario Avanzado <br><span style='color:gray;'>by Adolf</span></h1>", unsafe_allow_html=True)
+st.markdown("---")
 
-# --- Título ---
-st.markdown("<h1>🏡 Simulador Hipotecario Avanzado by Adolf</h1>", unsafe_allow_html=True)
-
-# --- Sidebar para inputs ---
-st.sidebar.header("Parámetros del Crédito")
-
-precio_uf = st.sidebar.number_input("Precio vivienda (UF)", min_value=1.0, value=4000.0, step=1.0)
-pie_uf = st.sidebar.number_input("Pie inicial (UF)", min_value=precio_uf*0.1, max_value=precio_uf, value=precio_uf*0.2, step=1.0)
-plazo = st.sidebar.slider("Plazo crédito (años)", min_value=1, max_value=30, value=20)
-tasa_anual = st.sidebar.number_input("Tasa interés anual (%)", min_value=0.1, max_value=15.0, value=4.0, step=0.01)
-seguro_mensual = st.sidebar.number_input("Seguro mensual (CLP)", min_value=0, value=10000, step=1000)
-
-prepago = st.sidebar.checkbox("Simular prepago parcial")
-prepago_monto = 0.0
-prepago_ano = 0
-if prepago:
-    prepago_monto = st.sidebar.number_input("Monto prepago (UF)", min_value=0.0, value=0.0)
-    prepago_ano = st.sidebar.number_input("Año prepago", min_value=1, max_value=plazo, value=5)
-
-# --- Llamada a mindicador ---
+# --- Indicadores económicos ---
 try:
-    data = requests.get("https://mindicador.cl/api").json()
+    resp = requests.get("https://mindicador.cl/api")
+    data = resp.json()
     uf_clp = data["uf"]["valor"]
+    tpm = data["tpm"]["valor"]
+    ipc = data["ipc"]["valor"]
+    dolar = data["dolar"]["valor"]
 except:
     uf_clp = 36000
+    tpm = ipc = dolar = None
 
-# --- Calcular crédito ---
-credito_uf = max(precio_uf - pie_uf, 0)
-tasa_mensual = (1 + tasa_anual/100)**(1/12) - 1
-n_meses = plazo * 12
-dividendo_uf = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual)**-n_meses) if credito_uf > 0 else 0
-dividendo_clp = dividendo_uf * uf_clp + seguro_mensual
+st.markdown("### 📈 Indicadores Económicos")
+coluf, coltpm, colipc, coldol = st.columns(4)
+coluf.metric("UF", f"{uf_clp:,.2f} CLP")
+coltpm.metric("TPM", f"{tpm:.2f}%" if tpm else "N/D")
+colipc.metric("IPC", f"{ipc:.2f}%" if ipc else "N/D")
+coldol.metric("Dólar", f"{dolar:,.2f} CLP" if dolar else "N/D")
 
-# --- Botón calcular ---
-if st.sidebar.button("🔄 Calcular Crédito"):
+st.markdown("---")
+
+# --- Modo: Comprador para vivir ---
+st.subheader("🧾 Datos de la Vivienda")
+col1, col2 = st.columns(2)
+with col1:
+    precio_uf = st.number_input("Precio vivienda (UF)", value=4000.0, min_value=100.0)
+    pie_uf = st.number_input("Pie inicial (UF)", value=precio_uf * 0.2,
+                             min_value=precio_uf * 0.1, max_value=precio_uf)
+    plazo = st.slider("Plazo del crédito (años)", 1, 30, 20)
+with col2:
+    tasa_anual = st.number_input("Tasa de interés anual (%)", value=4.0, min_value=0.1, max_value=15.0) / 100
+    inflacion = st.number_input("Inflación anual estimada (%)", value=3.0) / 100
+    seguro_mensual = st.number_input("Seguro mensual estimado (CLP)", value=10000)
+
+prepago = st.checkbox("¿Simular prepago parcial?")
+prepago_monto = prepago_ano = 0
+if prepago:
+    prepago_monto = st.number_input("Monto del prepago (UF)", value=0.0)
+    prepago_ano = st.number_input("Año del prepago", min_value=1, max_value=plazo, value=5)
+
+if st.button("🔄 Calcular Crédito"):
+    credito_uf = max(precio_uf - pie_uf, 0)
+    tasa_mensual = (1 + tasa_anual)**(1/12) - 1
+    n_meses = plazo * 12
+    dividendo_uf = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual)**-n_meses)
+    dividendo_clp = dividendo_uf * uf_clp + seguro_mensual
+    sueldo_req = dividendo_clp / 0.25
+
+    # Amortización
     saldo = credito_uf
     interes_total = capital_total = 0
-    anios_data = {}
     tabla = []
-    anio_salto = None
+    anios = {}
+
     for mes in range(1, n_meses + 1):
         interes = saldo * tasa_mensual
         capital = dividendo_uf - interes
@@ -115,50 +72,43 @@ if st.sidebar.button("🔄 Calcular Crédito"):
         interes_total += interes
         capital_total += capital
         anio = (mes - 1) // 12 + 1
-        anios_data.setdefault(anio, {"int": 0, "cap": 0})
-        anios_data[anio]["int"] += interes
-        anios_data[anio]["cap"] += capital
+        anios.setdefault(anio, {"int": 0, "cap": 0})
+        anios[anio]["int"] += interes
+        anios[anio]["cap"] += capital
         tabla.append([mes, anio, capital, interes, saldo])
-        if not anio_salto and capital > interes:
-            anio_salto = anio
 
-    # --- Mostrar resultados ---
-    st.markdown("## Resultados del Crédito")
-
-    # Tarjetas KPI
-    kpi_col1, kpi_col2, kpi_col3, kpi_col4 = st.columns(4)
-    kpi_col1.markdown(f'<div class="kpi"><h3>Monto Crédito</h3><span>{credito_uf:.2f} UF</span></div>', unsafe_allow_html=True)
-    kpi_col2.markdown(f'<div class="kpi"><h3>Dividendo Mensual</h3><span>{dividendo_uf:.2f} UF</span></div>', unsafe_allow_html=True)
-    kpi_col3.markdown(f'<div class="kpi"><h3>Intereses Totales</h3><span>{interes_total:.2f} UF</span></div>', unsafe_allow_html=True)
-    kpi_col4.markdown(f'<div class="kpi"><h3>Pie Inicial</h3><span>{pie_uf:.2f} UF</span></div>', unsafe_allow_html=True)
-
-    # Gráfico anual capital vs interés (Plotly)
-    years = list(anios_data.keys())
-    interest_vals = [anios_data[y]["int"] for y in years]
-    capital_vals = [anios_data[y]["cap"] for y in years]
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(name='Interés', x=years, y=interest_vals, marker_color='orange'))
-    fig.add_trace(go.Bar(name='Capital', x=years, y=capital_vals, marker_color='teal'))
-    fig.update_layout(barmode='stack', title='Evolución anual: Interés vs Capital', xaxis_title='Año', yaxis_title='UF pagadas')
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Tabla amortización
     df = pd.DataFrame(tabla, columns=["Mes", "Año", "Capital UF", "Interés UF", "Saldo UF"])
-    with st.expander("📅 Ver tabla de amortización"):
-        st.dataframe(df.style.format({"Capital UF":"{:.2f}","Interés UF":"{:.2f}","Saldo UF":"{:.2f}"}), height=350)
 
-    # Mensaje recomendación
-    if tasa_anual < 4.5 and (pie_uf / precio_uf) * 100 >= 20:
-        st.success("✅ Excelente combinación de tasa y pie.")
-    elif (pie_uf / precio_uf) * 100 < 15:
-        st.warning("⚠️ El pie es un poco bajo. Considera aumentarlo.")
-    elif tasa_anual > 5.0:
-        st.warning("⚠️ La tasa es alta. Intenta negociar una mejor con tu banco.")
+    # --- Resultados clave ---
+    st.markdown("## 📊 Resultados del Crédito")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.metric("Monto del crédito", f"{credito_uf:.2f} UF", f"~{credito_uf*uf_clp:,.0f} CLP")
+        st.metric("Dividendo mensual", f"{dividendo_uf:.2f} UF", f"~{dividendo_clp:,.0f} CLP")
+    with c2:
+        st.metric("Intereses totales", f"{interes_total:.2f} UF", f"~{interes_total*uf_clp:,.0f} CLP")
+        st.metric("Sueldo requerido (25%)", f"~{sueldo_req:,.0f} CLP")
 
-# --- Footer ---
-st.markdown("""
-<footer style="text-align:center; margin-top: 30px; font-size: 0.8rem; color: gray;">
-    Simulador Hipotecario Avanzado by Adolf &copy; 2025
-</footer>
-""", unsafe_allow_html=True)
+    # --- Gráfico circular limpio ---
+    fig1, ax1 = plt.subplots(figsize=(3.5, 3.5))
+    ax1.pie([capital_total, interes_total], labels=["Capital", "Interés"],
+            autopct="%1.1f%%", startangle=90, colors=["#66c2a5", "#fc8d62"])
+    ax1.set_title("Distribución del Pago Total", fontsize=12)
+    st.pyplot(fig1)
+
+    # --- Gráfico anual Interés vs Capital ---
+    st.markdown("### 📉 Evolución anual: Capital vs Interés")
+    years = list(anios.keys())
+    intereses = [anios[y]["int"] for y in years]
+    capitales = [anios[y]["cap"] for y in years]
+    fig2, ax2 = plt.subplots(figsize=(7, 3.5))
+    ax2.bar(years, intereses, label="Interés", color="#fc8d62")
+    ax2.bar(years, capitales, bottom=intereses, label="Capital", color="#66c2a5")
+    ax2.set_xlabel("Año"); ax2.set_ylabel("UF pagadas")
+    ax2.legend(); ax2.grid(True, linestyle="--", alpha=0.3)
+    st.pyplot(fig2)
+
+    # --- Tabla y descarga ---
+    with st.expander("📅 Tabla de amortización"):
+        st.dataframe(df.style.format({"Capital UF": "{:.2f}", "Interés UF": "{:.2f}", "Saldo UF": "{:.2f}"}), height=400)
+        st.download_button("📥 Descargar CSV", df.to_csv(index=False), file_name="amortizacion.csv", mime="text/csv")
