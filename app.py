@@ -4,69 +4,69 @@ import pandas as pd
 import requests
 import matplotlib.pyplot as plt
 
-# --- Configuración general ---
+# --- Configuración base ---
 st.set_page_config(page_title="🏡 Simulador Hipotecario Avanzado by Adolf", layout="wide")
-st.markdown("<h1 style='text-align: center;'>🏡 Simulador Hipotecario Avanzado <br><span style='color:gray;'>by Adolf</span></h1>", unsafe_allow_html=True)
-st.markdown("---")
+st.markdown("<h1 style='text-align: center; color: #2E86C1;'>🏡 Simulador Hipotecario Avanzado <br><sub>by Adolf</sub></h1>", unsafe_allow_html=True)
 
-# --- Indicadores económicos desde mindicador.cl ---
+# --- Indicadores económicos ---
 try:
-    r = requests.get("https://mindicador.cl/api")
-    data = r.json()
+    data = requests.get("https://mindicador.cl/api").json()
     uf_clp = data["uf"]["valor"]
-    tpm = data["tpm"]["valor"]
-    ipc = data["ipc"]["valor"]
-    dolar = data["dolar"]["valor"]
+    tpm = data.get("tpm", {}).get("valor", None)
+    dolar = data.get("dolar", {}).get("valor", None)
+    ipc = data.get("ipc", {}).get("valor", None)
 except:
-    uf_clp = 36000
-    tpm = ipc = dolar = None
+    uf_clp, tpm, dolar, ipc = 36000, None, None, None
 
-# --- Mostrar indicadores ---
-st.markdown("### 📈 Indicadores Económicos")
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("UF", f"{uf_clp:,.2f} CLP")
-col2.metric("TPM", f"{tpm:.2f}%" if tpm else "N/D")
-col3.metric("IPC", f"{ipc:.2f}%" if ipc else "N/D")
-col4.metric("Dólar", f"{dolar:,.2f} CLP" if dolar else "N/D")
+with st.container():
+    cols = st.columns(4)
+    cols[0].metric("💱 UF", f"{uf_clp:,.2f} CLP")
+    if tpm is not None:
+        cols[1].metric("🏦 TPM", f"{tpm:.2f} %")
+    if dolar is not None:
+        cols[2].metric("💵 Dólar", f"{dolar:,.2f} CLP")
+    if ipc is not None:
+        cols[3].metric("📈 IPC", f"{ipc:.2f} %")
 
 st.markdown("---")
 
-# --- Selección de modo ---
-modo = st.radio("Selecciona tu modo", ["🏡 Comprador para vivir", "💼 Inversionista", "🧠 Recomendador Inteligente"])
+# --- Selector de modo ---
+modo = st.radio("Selecciona tu modo", ["Comprador para vivir", "Inversionista", "🧠 Recomendador Inteligente"])
 
-# --- 1. COMPRADOR PARA VIVIR ---
-if modo == "🏡 Comprador para vivir":
-    st.subheader("🧾 Datos del Crédito Hipotecario")
+# --- Modo: Comprador para vivir ---
+if modo == "Comprador para vivir":
     col1, col2 = st.columns(2)
     with col1:
-        precio_uf = st.number_input("Precio vivienda (UF)", value=4000.0, min_value=100.0)
+        precio_uf = st.number_input("Precio de la vivienda (UF)", value=4000.0, min_value=1.0)
         pie_uf = st.number_input("Pie inicial (UF)", value=precio_uf * 0.2,
                                  min_value=precio_uf * 0.1, max_value=precio_uf)
-        plazo = st.slider("Plazo del crédito (años)", 1, 30, 20)
+        plazo = st.slider("Plazo del crédito (años)", min_value=1, max_value=30, value=20)
     with col2:
-        tasa_anual = st.number_input("Tasa de interés anual (%)", value=4.0, min_value=0.1, max_value=15.0) / 100
-        inflacion = st.number_input("Inflación esperada anual (%)", value=3.0) / 100
+        tasa_anual = st.number_input("Tasa de interés anual (%)", value=4.0, min_value=0.0, max_value=15.0) / 100
+        inflacion = st.number_input("Inflación estimada anual (%)", value=3.0) / 100
         seguro_mensual = st.number_input("Seguro mensual estimado (CLP)", value=10000)
 
-    # --- Prepago ---
     prepago = st.checkbox("¿Simular prepago parcial?")
     prepago_monto = prepago_ano = 0
     if prepago:
-        prepago_monto = st.number_input("Monto prepago (UF)", value=0.0)
+        prepago_monto = st.number_input("Monto prepago parcial (UF)", min_value=0.0, value=0.0)
         prepago_ano = st.number_input("Año del prepago", min_value=1, max_value=plazo, value=5)
 
-    # --- Cálculo ---
     if st.button("🔄 Calcular Crédito"):
         credito_uf = max(precio_uf - pie_uf, 0)
+        credito_porcentaje = credito_uf / precio_uf * 100
+        pie_porcentaje = pie_uf / precio_uf * 100
         tasa_mensual = (1 + tasa_anual)**(1/12) - 1
         n_meses = plazo * 12
-        dividendo_uf = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual)**-n_meses)
+        dividendo_uf = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual)**-n_meses) if credito_uf else 0
         dividendo_clp = dividendo_uf * uf_clp + seguro_mensual
-        sueldo_recomendado = dividendo_clp / 0.25
+        sueldo_req = dividendo_clp / 0.25
 
+        # Amortización
         saldo = credito_uf
-        capital_total = interes_total = 0
-        anios = {}
+        interes_total = capital_total = 0
+        anios_data = {}
+        anio_salto = None
         tabla = []
 
         for mes in range(1, n_meses + 1):
@@ -75,56 +75,66 @@ if modo == "🏡 Comprador para vivir":
             if prepago and mes == prepago_ano * 12:
                 saldo -= prepago_monto
             saldo -= capital
-            capital_total += capital
             interes_total += interes
-            anio = (mes - 1) // 12 + 1
-            anios.setdefault(anio, {"int": 0, "cap": 0})
-            anios[anio]["int"] += interes
-            anios[anio]["cap"] += capital
+            capital_total += capital
+            anio = mes // 12 + 1
+            anios_data.setdefault(anio, {"int": 0, "cap": 0})
+            anios_data[anio]["int"] += interes
+            anios_data[anio]["cap"] += capital
             tabla.append([mes, anio, capital, interes, saldo])
+            if not anio_salto and capital > interes:
+                anio_salto = anio
 
-        df = pd.DataFrame(tabla, columns=["Mes", "Año", "Capital UF", "Interés UF", "Saldo UF"])
-
-        # --- Resultados y métricas ---
-        st.markdown("## 📊 Resultados del Crédito")
+        # Resultados
+        st.subheader("📊 Resultados del Crédito")
         c1, c2 = st.columns(2)
         with c1:
-            st.metric("Monto del crédito", f"{credito_uf:.2f} UF", f"~{credito_uf * uf_clp:,.0f} CLP")
-            st.metric("Dividendo mensual", f"{dividendo_uf:.2f} UF", f"~{dividendo_clp:,.0f} CLP")
+            st.metric("Monto del crédito", f"{credito_uf:.2f} UF", f"~{credito_uf*uf_clp:,.0f} CLP")
+            st.markdown(f"Equivale al **{credito_porcentaje:.1f}%** del precio")
+            st.metric("Dividendo mensual", f"{dividendo_uf:.2f} UF", f"~{dividendo_clp:,.0f} CLP")
         with c2:
-            st.metric("Intereses totales", f"{interes_total:.2f} UF", f"~{interes_total * uf_clp:,.0f} CLP")
-            st.metric("Sueldo mínimo recomendado", f"~{sueldo_recomendado:,.0f} CLP")
+            st.metric("Pie inicial", f"{pie_uf:.2f} UF", f"~{pie_uf*uf_clp:,.0f} CLP")
+            st.markdown(f"Representa **{pie_porcentaje:.1f}%** del precio")
+            st.metric("Intereses totales", f"{interes_total:.2f} UF", f"~{interes_total*uf_clp:,.0f} CLP")
+            st.metric("Sueldo estimado mínimo", f"~{sueldo_req:,.0f} CLP")
 
-        # --- Gráfico circular ---
-        fig1, ax1 = plt.subplots(figsize=(3.5, 3.5))
-        ax1.pie([capital_total, interes_total], labels=["Capital", "Interés"],
-                autopct="%1.1f%%", startangle=90, colors=["#66c2a5", "#fc8d62"])
-        ax1.set_title("Distribución total del pago")
+        # Gráfico circular más pequeño
+        fig1, ax1 = plt.subplots(figsize=(4, 4))
+        ax1.pie([capital_total, interes_total], labels=["Capital", "Interés"], autopct="%1.1f%%", startangle=90)
+        ax1.set_title("Distribución pago total")
         st.pyplot(fig1)
 
-        # --- Gráfico anual de interés vs capital ---
-        st.markdown("### 📉 Evolución anual: Capital vs Interés")
-        years = list(anios.keys())
-        intereses = [anios[y]["int"] for y in years]
-        capitales = [anios[y]["cap"] for y in years]
-        fig2, ax2 = plt.subplots(figsize=(7, 3.5))
-        ax2.bar(years, intereses, label="Interés", color="#fc8d62")
-        ax2.bar(years, capitales, bottom=intereses, label="Capital", color="#66c2a5")
-        ax2.set_xlabel("Año")
-        ax2.set_ylabel("UF pagadas")
+        # Gráfico de evolución anual
+        years = list(anios_data.keys())
+        ints = [anios_data[y]["int"] for y in years]
+        caps = [anios_data[y]["cap"] for y in years]
+        fig2, ax2 = plt.subplots(figsize=(8, 4))
+        ax2.bar(years, ints, label="Interés", color="orange")
+        ax2.bar(years, caps, bottom=ints, label="Capital", color="teal")
+        ax2.set_xlabel("Año"); ax2.set_ylabel("UF pagadas")
+        ax2.set_title("Evolución anual: Interés vs Capital")
         ax2.legend()
-        ax2.grid(True, linestyle="--", alpha=0.3)
         st.pyplot(fig2)
 
-        # --- Tabla amortización ---
-        with st.expander("📅 Tabla de amortización"):
-            st.dataframe(df.style.format({"Capital UF":"{:.2f}", "Interés UF":"{:.2f}", "Saldo UF":"{:.2f}"}), height=400)
-            st.download_button("📥 Descargar en CSV", data=df.to_csv(index=False), file_name="amortizacion.csv", mime="text/csv")
+        # Recomendación automática
+        st.subheader("🧠 Recomendación automática")
+        if tasa_anual < 0.045 and pie_porcentaje >= 20:
+            st.success("✅ Excelente combinación de tasa y pie.")
+        elif pie_porcentaje < 15:
+            st.warning("⚠️ El pie es un poco bajo. Considera aumentarlo.")
+        elif tasa_anual > 0.05:
+            st.warning("⚠️ La tasa es alta. Intenta negociar una mejor con tu banco.")
 
-# --- 2. INVERSIONISTA ---
-elif modo == "💼 Inversionista":
-    st.info("💼 Modo Inversionista: En construcción. Pronto más detalles.")
+        # Tabla de amortización
+        df_tabla = pd.DataFrame(tabla, columns=["Mes", "Año", "Capital UF", "Interés UF", "Saldo UF"])
+        with st.expander("📅 Ver tabla de amortización"):
+            st.dataframe(df_tabla.style.format({"Capital UF":"{:.2f}","Interés UF":"{:.2f}","Saldo UF":"{:.2f}"}), height=400)
+            st.download_button("📥 Descargar tabla en CSV", data=df_tabla.to_csv(index=False), file_name="amortización.csv", mime="text/csv")
 
-# --- 3. RECOMENDADOR INTELIGENTE ---
-elif modo == "🧠 Recomendador Inteligente":
-    st.info("🧠 Modo IA: Muy pronto te recomendaremos el mejor crédito según tus metas y sueldo.")
+# --- Modo Inversionista ---
+elif modo == "Inversionista":
+    st.info("Modo Inversionista cargado. Pronto se optimizará.")
+
+# --- Modo Recomendador Inteligente ---
+else:
+    st.info("Modo Recomendador Inteligente cargado. En próximas versiones incluirá IA.")
