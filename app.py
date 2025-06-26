@@ -39,11 +39,7 @@ if modo == "Comprador para vivir":
                                  min_value=precio_uf * 0.1, max_value=precio_uf)
         plazo = st.slider("Plazo del crédito (años)", min_value=1, max_value=30, value=20)
     with col2:
-        # Slider dividido para tasa (parte entera y decimal)
-        tasa_ent = st.slider("Tasa (parte entera %)", 2, 8, 4)
-        tasa_dec = st.slider("Tasa (parte decimal %)", 0.0, 0.9, 0.0, step=0.1)
-        tasa_anual = (tasa_ent + tasa_dec) / 100
-        
+        tasa_anual = st.number_input("Tasa de interés anual (%)", min_value=0.0, max_value=20.0, value=4.0) / 100
         inflacion = st.number_input("Inflación estimada anual (%)", value=3.0) / 100
         seguro_mensual = st.number_input("Seguro mensual estimado (CLP)", value=10000)
 
