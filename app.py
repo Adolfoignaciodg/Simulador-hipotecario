@@ -35,7 +35,7 @@ if modo == "Comprador para vivir":
                                  min_value=precio_uf * 0.1, max_value=precio_uf)
         plazo = st.slider("Plazo del crédito (años)", min_value=1, max_value=30, value=20)
     with col2:
-        tasa_anual = st.number_input("Tasa de interés anual (%)", value=4.0) / 100
+        tasa_anual = st.slider("Tasa de interés anual (%)", min_value=1.0, max_value=15.0, value=4.0, step=0.05) / 100
         inflacion = st.number_input("Inflación estimada anual (%)", value=3.0) / 100
         seguro_mensual = st.number_input("Seguro mensual estimado (CLP)", value=10000)
 
@@ -92,23 +92,10 @@ if modo == "Comprador para vivir":
             st.metric("Intereses totales", f"{interes_total:.2f} UF", f"~{interes_total*uf_clp:,.0f} CLP")
             st.metric("Sueldo estimado mínimo", f"~{sueldo_req:,.0f} CLP")
 
-        # Gráfico circular compacto tipo dona
-        fig1, ax1 = plt.subplots(figsize=(3, 3), dpi=100)
-        colors = ["#4daf4a", "#ff7f00"]
-        wedges, texts, autotexts = ax1.pie(
-            [capital_total, interes_total],
-            labels=["Capital", "Interés"],
-            autopct="%1.1f%%",
-            startangle=90,
-            colors=colors,
-            textprops={'color':"w"},
-            wedgeprops={'edgecolor': 'black', 'linewidth': 0.5}
-        )
-        for autotext in autotexts:
-            autotext.set_fontsize(10)
-            autotext.set_weight('bold')
-        ax1.set_title("Distribución del pago total", fontsize=12)
-        plt.setp(wedges, width=0.5)
+        # Gráfico circular (compacto)
+        fig1, ax1 = plt.subplots(figsize=(4, 4))
+        ax1.pie([capital_total, interes_total], labels=["Capital", "Interés"], autopct="%1.1f%%", startangle=90)
+        ax1.set_title("Distribución pago total")
         st.pyplot(fig1)
 
         # Gráfico anual Capital vs Interés
@@ -145,4 +132,4 @@ elif modo == "Inversionista":
 
 # --- 3. Recomendador Inteligente (sin cambios) ---
 else:
-    st.info("Modo Recomendador Inteligente cargado. En próximas versiones incluirá IA.") 
+    st.info("Modo Recomendador Inteligente cargado. En próximas versiones incluirá IA.")
