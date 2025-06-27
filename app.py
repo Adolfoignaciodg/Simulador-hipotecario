@@ -12,31 +12,25 @@ h1 {
     font-family: 'Segoe UI', sans-serif;
     color: #2E86C1;
 }
-
-/* Estilo premium para indicadores económicos en sidebar */
 [data-testid="metric-container"] {
-    background-color: transparent !important; /* sin fondo para más minimalismo */
-    padding: 12px 0px 12px 0px !important;
-    border-radius: 0 !important;
+    background-color: transparent !important;
+    padding: 12px 0px;
     border: none !important;
-    margin-bottom: 6px !important;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
-    color: #2C3E50 !important; /* gris oscuro elegante */
+    color: #2C3E50 !important;
     font-weight: 600 !important;
     font-size: 18px !important;
-    box-shadow: none !important; /* sin sombra */
 }
 [data-testid="metric-value"] {
     font-weight: 700 !important;
     font-size: 24px !important;
-    color: #1B2631 !important; /* gris aún más oscuro */
+    color: #1B2631 !important;
 }
 [data-testid="metric-subheader"] {
     font-weight: 500 !important;
     font-size: 14px !important;
-    color: #566573 !important; /* gris medio */
+    color: #566573 !important;
 }
-
 .stButton>button {
     background-color: #2E86C1;
     color: white;
@@ -44,7 +38,6 @@ h1 {
     padding: 10px 16px;
     font-weight: bold;
     border: none;
-    transition: background-color 0.3s ease;
 }
 .stButton>button:hover {
     background-color: #1A5276;
@@ -156,25 +149,49 @@ if modo == "Comprador para vivir":
             st.metric("Intereses totales", f"{interes_total:,.2f} UF", f"~{interes_total * uf_clp:,.0f} CLP")
             st.metric("Sueldo requerido (25%)", f"~{sueldo_recomendado:,.0f} CLP")
 
-        # --- Gráfico circular elegante ---
-# --- Gráfico circular elegante con tooltip mejorado ---
-fig1 = go.Figure(data=[go.Pie(
-    labels=["Capital", "Interés"],
-    values=[capital_total, interes_total],
-    hole=0.4,
-    marker=dict(colors=["#1ABC9C", "#F39C12"]),
-    customdata=[round(capital_total * uf_clp), round(interes_total * uf_clp)],
-    hovertemplate="<b>%{label}</b><br>" +
-                  "Porcentaje: %{percent}<br>" +
-                  "Monto: %{value:.2f} UF<br>" +
-                  "Aprox: $%{customdata:,} CLP<extra></extra>"
-)])
-fig1.update_layout(
-    title="Distribución total del pago",
-    height=400,
-    showlegend=True
-)
-st.plotly_chart(fig1, use_container_width=True)
+        # --- NUEVO Gráfico circular elegante ---
+        fig1 = go.Figure(data=[go.Pie(
+            labels=["Capital", "Interés"],
+            values=[capital_total, interes_total],
+            hole=0.4,
+            marker=dict(colors=["#1ABC9C", "#F39C12"]),
+            customdata=[round(capital_total * uf_clp), round(interes_total * uf_clp)],
+            hovertemplate="<b>%{label}</b><br>Porcentaje: %{percent}<br>Monto: %{value:.2f} UF<br>~$%{customdata:,} CLP<extra></extra>"
+        )])
+        fig1.update_layout(
+            title="Distribución total del pago",
+            height=400,
+            showlegend=True
+        )
+        st.plotly_chart(fig1, use_container_width=True)
+
+        # --- Barras anuales con tooltip en CLP ---
+        years = list(anios.keys())
+        fig2 = go.Figure()
+        fig2.add_trace(go.Bar(
+            x=years,
+            y=[anios[y]["int"] for y in years],
+            name="Interés",
+            marker_color="orange",
+            customdata=[round(anios[y]["int"] * uf_clp) for y in years],
+            hovertemplate="<b>Año %{x}</b><br>Interés: %{y:.2f} UF<br>(~$%{customdata:,} CLP)<extra></extra>"
+        ))
+        fig2.add_trace(go.Bar(
+            x=years,
+            y=[anios[y]["cap"] for y in years],
+            name="Capital",
+            marker_color="teal",
+            customdata=[round(anios[y]["cap"] * uf_clp) for y in years],
+            hovertemplate="<b>Año %{x}</b><br>Capital: %{y:.2f} UF<br>(~$%{customdata:,} CLP)<extra></extra>"
+        ))
+        fig2.update_layout(
+            barmode='stack',
+            title="📉 Evolución anual: Interés vs Capital",
+            xaxis_title="Año",
+            yaxis_title="UF",
+            height=450
+        )
+        st.plotly_chart(fig2, use_container_width=True)
 
         # --- Diagnóstico Financiero Inteligente ---
         st.subheader("💡 Diagnóstico Financiero Inteligente")
