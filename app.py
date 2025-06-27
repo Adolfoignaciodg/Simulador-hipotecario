@@ -322,24 +322,19 @@ elif modo == "Inversionista":
 
     if agregar_benef and monto_benef > 0:
         st.session_state.beneficios.append({"monto": monto_benef, "desc": desc_benef})
-        st.success("Beneficio agregado correctamente ✅")
-
-    # Mostrar beneficios y permitir eliminar uno específico
-    if st.session_state.beneficios:
-        st.markdown("### 📋 Beneficios agregados")
-        for i, b in enumerate(st.session_state.beneficios):
-            st.markdown(f"- **{b['desc'] or 'Sin descripción'}**: {b['monto']:.2f} UF")
-
-        nombres_beneficios = [f"{b['desc'] or 'Sin descripción'} ({b['monto']:.2f} UF)" for b in st.session_state.beneficios]
-        eliminar_opcion = st.selectbox("🗑️ Selecciona un beneficio para eliminar", [""] + nombres_beneficios)
-
-        if eliminar_opcion:
-            if st.button("❌ Eliminar beneficio seleccionado"):
-                idx = nombres_beneficios.index(eliminar_opcion)
-                eliminado = st.session_state.beneficios.pop(idx)
-                st.success(f"✅ Beneficio eliminado: {eliminado['desc'] or 'Sin descripción'} ({eliminado['monto']:.2f} UF)")
 
     total_beneficios = sum(b["monto"] for b in st.session_state.beneficios)
+
+    if st.session_state.beneficios:
+        st.info(f"Total beneficios acumulados: **{total_beneficios:.2f} UF**")
+        for idx, b in enumerate(st.session_state.beneficios):
+            col1, col2 = st.columns([0.8, 0.2])
+            with col1:
+                st.markdown(f"- {b['desc'] or 'Sin descripción'}: **{b['monto']:.2f} UF**")
+            with col2:
+                if st.button(f"❌ Eliminar", key=f"eliminar_benef_{idx}"):
+                    st.session_state.beneficios.pop(idx)
+                    st.experimental_rerun()
 
     # --- Simulación ---
     if st.button("📊 Simular inversión", key="boton_inv"):
