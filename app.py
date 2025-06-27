@@ -248,10 +248,58 @@ if modo == "Comprador para vivir":
             }), height=400)
             st.download_button("📥 Descargar tabla CSV", data=df.to_csv(index=False), file_name="amortizacion.csv")
 
+# --- Comparativa rápida por plazos típicos con misma tasa simulada ---
+st.subheader("📊 Comparativa rápida: distintos plazos con misma tasa simulada")
+
+plazos_comunes = [15, 20, 25, 30]
+comparacion_rapida = []
+
+for p in plazos_comunes:
+    if p == plazo:
+        continue  # evitar duplicar la simulación actual
+
+    meses_ref = p * 12
+    tasa_mensual_ref = (1 + tasa_anual) ** (1/12) - 1
+    dividendo_uf_ref = credito_uf * tasa_mensual_ref / (1 - (1 + tasa_mensual_ref) ** -meses_ref)
+    dividendo_clp_ref = dividendo_uf_ref * uf_clp + seguro_mensual
+    renta_recomendada = dividendo_clp_ref / 0.25
+    total_uf = dividendo_uf_ref * meses_ref
+    intereses_uf = total_uf - credito_uf
+    total_clp = total_uf * uf_clp
+    intereses_clp = intereses_uf * uf_clp
+
+    comparacion_rapida.append([
+        f"{p} años",
+        f"{tasa_anual * 100:.2f}%",
+        f"{dividendo_uf_ref:.2f} UF",
+        f"${dividendo_clp_ref:,.0f}",
+        f"${renta_recomendada:,.0f}",
+        f"{total_uf:.2f} UF",
+        f"${total_clp:,.0f}",
+        f"{intereses_uf:.2f} UF",
+        f"${intereses_clp:,.0f}"
+    ])
+
+df_comp = pd.DataFrame(comparacion_rapida, columns=[
+    "Plazo",
+    "Tasa (%)",
+    "Dividendo (UF)",
+    "Dividendo ($)",
+    "Renta sugerida ($)",
+    "Monto total pagar (UF)",
+    "Monto total pagar ($)",
+    "Intereses Totales (UF)",
+    "Intereses Totales ($)"
+])
+
+st.dataframe(df_comp, height=380, use_container_width=True)
+st.caption(f"*Valores calculados con tasa {tasa_anual*100:.2f}% y UF = ${uf_clp:,.2f} al {pd.Timestamp.now().strftime('%d-%m-%Y')}*")
+
 # --- Otros modos (placeholders) ---
 elif modo == "Inversionista":
     st.info("🔧 Modo Inversionista aún en desarrollo. Pronto podrás simular arriendo vs dividendo.")
 else:
     st.info("🧠 Modo Inteligente en construcción. Pronto te ayudará a encontrar el mejor escenario según tus metas.")
+
 
 
