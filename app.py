@@ -4,9 +4,55 @@ import pandas as pd
 import requests
 import plotly.graph_objects as go
 
-# --- Configuración inicial ---
+# --- Estilo Premium ---
 st.set_page_config(page_title="🏡 Simulador Hipotecario Avanzado by Adolf", layout="wide")
-st.markdown("<h1 style='text-align: center; color: #2E86C1;'>🏡 Simulador Hipotecario Avanzado <span style='font-size: 20px;'>by Adolf</span></h1>", unsafe_allow_html=True)
+st.markdown("""
+<style>
+h1 {
+    font-family: 'Segoe UI', sans-serif;
+    color: #2E86C1;
+}
+[data-testid="metric-container"] {
+    background-color: #f7f9fc;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #dfe6ed;
+    margin-bottom: 10px;
+}
+.stButton>button {
+    background-color: #2E86C1;
+    color: white;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-weight: bold;
+    border: none;
+    transition: background-color 0.3s ease;
+}
+.stButton>button:hover {
+    background-color: #1A5276;
+}
+input[type="number"], .stSlider, select {
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    padding: 5px;
+}
+.css-1d391kg, .css-1cypcdb {
+    background-color: #ecf2f9;
+}
+.st-expander {
+    background-color: #f1f6fb;
+    border: 1px solid #cbdce8;
+    border-radius: 10px;
+}
+.reportview-container .markdown-text-container {
+    font-size: 16px;
+    line-height: 1.6;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# --- Título principal ---
+st.markdown("<h1 style='text-align: center;'>🏡 Simulador Hipotecario Avanzado <span style='font-size: 20px;'>by Adolf</span></h1>", unsafe_allow_html=True)
 st.markdown("---")
 
 # --- Sidebar: Indicadores Económicos ---
@@ -158,7 +204,7 @@ if modo == "Comprador para vivir":
             st.dataframe(df.style.format({"Capital Pagado UF": "{:.2f}", "Interés Pagado UF": "{:.2f}", "Saldo Restante UF": "{:.2f}"}), height=400)
             st.download_button("📥 Descargar tabla CSV", data=df.to_csv(index=False), file_name="amortizacion.csv")
 
-# --- Modo Inversionista y Recomendador (borradores) ---
+# --- Otros modos (placeholders) ---
 elif modo == "Inversionista":
     st.info("🔧 Modo Inversionista aún en desarrollo. Pronto podrás simular arriendo vs dividendo.")
 else:
