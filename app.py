@@ -146,12 +146,38 @@ if modo == "Comprador para vivir":
         st.plotly_chart(fig1, use_container_width=True)
 
         # --- Barras anuales ---
-        years = list(anios.keys())
-        fig2 = go.Figure()
-        fig2.add_trace(go.Bar(x=years, y=[anios[y]["int"] for y in years], name="Interés", marker_color="orange"))
-        fig2.add_trace(go.Bar(x=years, y=[anios[y]["cap"] for y in years], name="Capital", marker_color="teal"))
-        fig2.update_layout(barmode='stack', title="Evolución anual: Interés vs Capital", xaxis_title="Año", yaxis_title="UF")
-        st.plotly_chart(fig2, use_container_width=True)
+        # --- Barras anuales con tooltip en CLP ---
+years = list(anios.keys())
+
+fig2 = go.Figure()
+
+fig2.add_trace(go.Bar(
+    x=years,
+    y=[anios[y]["int"] for y in years],
+    name="Interés",
+    marker_color="orange",
+    customdata=[round(anios[y]["int"] * uf_clp) for y in years],
+    hovertemplate="<b>Año %{x}</b><br>Interés: %{y:.2f} UF<br>(~$%{customdata:,} CLP)<extra></extra>"
+))
+
+fig2.add_trace(go.Bar(
+    x=years,
+    y=[anios[y]["cap"] for y in years],
+    name="Capital",
+    marker_color="teal",
+    customdata=[round(anios[y]["cap"] * uf_clp) for y in years],
+    hovertemplate="<b>Año %{x}</b><br>Capital: %{y:.2f} UF<br>(~$%{customdata:,} CLP)<extra></extra>"
+))
+
+fig2.update_layout(
+    barmode='stack',
+    title="📉 Evolución anual: Interés vs Capital",
+    xaxis_title="Año",
+    yaxis_title="UF",
+    height=450
+)
+
+st.plotly_chart(fig2, use_container_width=True)
 
         # --- Diagnóstico Financiero Inteligente ---
         st.subheader("💡 Diagnóstico Financiero Inteligente")
