@@ -254,3 +254,4 @@ elif modo == "Inversionista":
 else:
     st.info("🧠 Modo Inteligente en construcción. Pronto te ayudará a encontrar el mejor escenario según tus metas.")
 
+
