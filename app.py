@@ -309,7 +309,7 @@ elif modo == "Inversionista":
         arriendo_clp = st.number_input("🏷️ Arriendo mensual estimado (CLP)", value=0, step=10000, key="arriendo_inv")
         seguro_mensual = st.number_input("🛡️ Seguro mensual (CLP)", value=10000, step=1000, key="seguro_inv")
 
-    # --- Sección Beneficios/Subsidios ---
+    # --- Beneficios/Subsidios ---
     st.markdown("### 🎁 Agregar beneficios, subsidios o descuentos")
 
     if "beneficios" not in st.session_state:
@@ -342,18 +342,17 @@ elif modo == "Inversionista":
         n_meses = plazo * 12
         inversion_real_clp = pie_uf * uf_clp
 
-        # Amortización real
         saldo = credito_uf
         tabla = []
         flujo_libre = []
         flujo_acumulado = []
-        saldo_clp = credito_uf * uf_clp
         recuperado = -inversion_real_clp
         mes_recuperacion = None
 
         for mes in range(1, n_meses + 1):
             interes_mes = saldo * tasa_mensual
-            amortizacion_mes = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual)**-n_meses) - interes_mes
+            cuota_mensual_uf = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual) ** -n_meses)
+            amortizacion_mes = cuota_mensual_uf - interes_mes
             saldo -= amortizacion_mes
             dividendo_mes_uf = interes_mes + amortizacion_mes
             dividendo_clp = dividendo_mes_uf * uf_clp + seguro_mensual
@@ -361,6 +360,7 @@ elif modo == "Inversionista":
             recuperado += flujo_mes
             flujo_libre.append(flujo_mes)
             flujo_acumulado.append(recuperado)
+
             if mes_recuperacion is None and recuperado >= 0:
                 mes_recuperacion = mes
 
@@ -387,18 +387,22 @@ elif modo == "Inversionista":
         else:
             st.warning("⚠️ No alcanzas a recuperar el pie durante el plazo.")
 
+        # Gráfico flujo acumulado
         st.subheader("📈 Gráfico: Flujo Acumulado")
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df_tabla["Mes"], y=df_tabla["Flujo Acumulado (CLP)"],
-                                 mode="lines+markers", name="Flujo acumulado", line=dict(color="green")))
+        fig.add_trace(go.Scatter(
+            x=df_tabla["Mes"], y=df_tabla["Flujo Acumulado (CLP)"],
+            mode="lines+markers", name="Flujo acumulado", line=dict(color="green")))
         fig.add_hline(y=0, line_dash="dash", line_color="gray",
                       annotation_text="Punto de equilibrio", annotation_position="top left")
         fig.update_layout(xaxis_title="Mes", yaxis_title="CLP", height=400)
         st.plotly_chart(fig, use_container_width=True)
 
+        # Tabla de amortización
         st.subheader("📊 Tabla de Amortización")
         st.dataframe(df_tabla[["Mes", "Saldo (UF)", "Interés (UF)", "Amortización (UF)", "Dividendo (CLP)", "Flujo Libre (CLP)"]].round(2), use_container_width=True)
 
+        # Rentabilidad y TIR
         st.subheader("📦 Rentabilidad y TIR")
         utilidad_total = sum(flujo_libre)
         st.write(f"📈 Rentabilidad estimada total: **{(utilidad_total / inversion_real_clp) * 100:.2f}%**")
