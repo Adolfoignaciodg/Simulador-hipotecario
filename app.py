@@ -12,13 +12,31 @@ h1 {
     font-family: 'Segoe UI', sans-serif;
     color: #2E86C1;
 }
+
+/* Estilo premium para indicadores económicos en sidebar */
 [data-testid="metric-container"] {
-    background-color: #f7f9fc;
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid #dfe6ed;
-    margin-bottom: 10px;
+    background-color: transparent !important; /* sin fondo para más minimalismo */
+    padding: 12px 0px 12px 0px !important;
+    border-radius: 0 !important;
+    border: none !important;
+    margin-bottom: 6px !important;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+    color: #2C3E50 !important; /* gris oscuro elegante */
+    font-weight: 600 !important;
+    font-size: 18px !important;
+    box-shadow: none !important; /* sin sombra */
 }
+[data-testid="metric-value"] {
+    font-weight: 700 !important;
+    font-size: 24px !important;
+    color: #1B2631 !important; /* gris aún más oscuro */
+}
+[data-testid="metric-subheader"] {
+    font-weight: 500 !important;
+    font-size: 14px !important;
+    color: #566573 !important; /* gris medio */
+}
+
 .stButton>button {
     background-color: #2E86C1;
     color: white;
