@@ -328,10 +328,10 @@ elif modo == "Inversionista":
     if st.session_state.beneficios:
         st.info(f"Total beneficios acumulados: **{total_beneficios:.2f} UF**")
         for idx, b in enumerate(st.session_state.beneficios):
-            col1, col2 = st.columns([0.8, 0.2])
-            with col1:
+            col1_b, col2_b = st.columns([0.8, 0.2])
+            with col1_b:
                 st.markdown(f"- {b['desc'] or 'Sin descripción'}: **{b['monto']:.2f} UF**")
-            with col2:
+            with col2_b:
                 if st.button(f"❌ Eliminar", key=f"eliminar_benef_{idx}"):
                     st.session_state.beneficios.pop(idx)
                     st.experimental_rerun()
@@ -346,8 +346,11 @@ elif modo == "Inversionista":
         dividendo_uf = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual)**-n_meses)
         dividendo_clp = dividendo_uf * uf_clp + seguro_mensual
 
-        pie_clp = pie_uf * uf_clp
-        arriendo_minimo = dividendo_clp + (pie_clp / n_meses)
+        # ✅ Pie real: solo lo que tú pusiste
+        inversion_real_clp = pie_uf * uf_clp
+
+        # 🧮 Arriendo mínimo necesario para recuperar tu inversión
+        arriendo_minimo = dividendo_clp + (inversion_real_clp / n_meses)
 
         if arriendo_clp == 0:
             st.info(f"💡 Arriendo mínimo recomendado para recuperar inversión: ~${arriendo_minimo:,.0f} CLP mensuales")
@@ -360,7 +363,7 @@ elif modo == "Inversionista":
                 st.warning(f"⚠️ El arriendo es menor al mínimo recomendado (${arriendo_minimo:,.0f}), no recuperarás la inversión en el plazo.")
 
         flujo_mensual_libre = arriendo_clp - dividendo_clp
-        recuperado = -pie_clp
+        recuperado = -inversion_real_clp
         mes_recuperacion = None
         flujo_acumulado = []
 
@@ -371,17 +374,18 @@ elif modo == "Inversionista":
                 mes_recuperacion = mes
 
         total_arriendo = arriendo_clp * n_meses
-        utilidad_neta = total_arriendo - (dividendo_clp * n_meses) - pie_clp
+        utilidad_neta = total_arriendo - (dividendo_clp * n_meses) - inversion_real_clp
 
         # --- Métricas clave ---
         st.metric("Dividendo mensual estimado", f"~${dividendo_clp:,.0f}")
         st.metric("Diferencia mensual (Arriendo - Dividendo)", f"~${flujo_mensual_libre:,.0f}")
         st.metric("Utilidad estimada al final del plazo", f"~${utilidad_neta:,.0f}")
+        st.metric("Tu inversión real (pie sin subsidios)", f"${inversion_real_clp:,.0f}")
 
         if flujo_mensual_libre > 0:
             if mes_recuperacion:
                 anios = mes_recuperacion // 12
-                st.success(f"✅ Recuperas tu inversión inicial (pie) en {mes_recuperacion} meses (~{anios} años).")
+                st.success(f"✅ Recuperas tu inversión inicial (pie real) en {mes_recuperacion} meses (~{anios} años).")
             else:
                 st.warning("⚠️ No alcanzas a recuperar el pie durante el plazo del crédito.")
         else:
@@ -410,5 +414,23 @@ elif modo == "Inversionista":
                           yaxis_title="CLP",
                           height=400)
         st.plotly_chart(fig, use_container_width=True)
+
+        # --- Métricas financieras adicionales ---
+        st.subheader("📊 Métricas financieras adicionales")
+
+        st.write(f"📦 **Flujo acumulado al final del plazo:** ${flujo_acumulado[-1]:,.0f} CLP")
+
+        if inversion_real_clp > 0:
+            rentabilidad_total = utilidad_neta / inversion_real_clp
+            st.write(f"📈 **Rentabilidad total estimada:** {rentabilidad_total*100:.2f}%")
+
+            # Calcular TIR
+            flujos = [-inversion_real_clp] + [flujo_mensual_libre] * n_meses
+            try:
+                tir_mensual = np.irr(flujos)
+                tir_anual = (1 + tir_mensual)**12 - 1
+                st.write(f"💹 **TIR estimada anual:** {tir_anual*100:.2f}%")
+            except Exception:
+                st.warning("💹 **TIR:** No se pudo calcular (flujo no recuperado o no converge)")
 else:
     st.info("🧠 Modo Inteligente en construcción. Pronto te ayudará a encontrar el mejor escenario según tus metas.") 
