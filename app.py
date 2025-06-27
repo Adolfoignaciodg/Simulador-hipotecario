@@ -117,7 +117,6 @@ if modo == "Comprador para vivir":
         interes_total = capital_total = 0
         tabla = []
         anios = {}
-        anio_salto = None
 
         for mes in range(1, n_meses + 1):
             interes = saldo * tasa_mensual
@@ -132,8 +131,6 @@ if modo == "Comprador para vivir":
             anios[anio]["cap"] += capital
             anios[anio]["int"] += interes
             tabla.append([mes, anio, capital, interes, saldo])
-            if not anio_salto and capital > interes:
-                anio_salto = anio
 
         monto_total_uf = capital_total + interes_total
         monto_total_clp = monto_total_uf * uf_clp
@@ -149,157 +146,55 @@ if modo == "Comprador para vivir":
             st.metric("Intereses totales", f"{interes_total:,.2f} UF", f"~{interes_total * uf_clp:,.0f} CLP")
             st.metric("Sueldo requerido (25%)", f"~{sueldo_recomendado:,.0f} CLP")
 
-        # --- NUEVO Gráfico circular elegante ---
-        fig1 = go.Figure(data=[go.Pie(
-            labels=["Capital", "Interés"],
-            values=[capital_total, interes_total],
-            hole=0.4,
-            marker=dict(colors=["#1ABC9C", "#F39C12"]),
-            customdata=[round(capital_total * uf_clp), round(interes_total * uf_clp)],
-            hovertemplate="<b>%{label}</b><br>Porcentaje: %{percent}<br>Monto: %{value:.2f} UF<br>~$%{customdata:,} CLP<extra></extra>"
-        )])
-        fig1.update_layout(
-            title="Distribución total del pago",
-            height=400,
-            showlegend=True
-        )
-        st.plotly_chart(fig1, use_container_width=True)
+        # --- Comparativa rápida de plazos ---
+        st.subheader("📊 Comparativa rápida: distintos plazos con misma tasa simulada")
+        plazos_comunes = [15, 20, 25, 30]
+        comparacion_rapida = []
 
-        # --- Barras anuales con tooltip en CLP ---
-        years = list(anios.keys())
-        fig2 = go.Figure()
-        fig2.add_trace(go.Bar(
-            x=years,
-            y=[anios[y]["int"] for y in years],
-            name="Interés",
-            marker_color="orange",
-            customdata=[round(anios[y]["int"] * uf_clp) for y in years],
-            hovertemplate="<b>Año %{x}</b><br>Interés: %{y:.2f} UF<br>(~$%{customdata:,} CLP)<extra></extra>"
-        ))
-        fig2.add_trace(go.Bar(
-            x=years,
-            y=[anios[y]["cap"] for y in years],
-            name="Capital",
-            marker_color="teal",
-            customdata=[round(anios[y]["cap"] * uf_clp) for y in years],
-            hovertemplate="<b>Año %{x}</b><br>Capital: %{y:.2f} UF<br>(~$%{customdata:,} CLP)<extra></extra>"
-        ))
-        fig2.update_layout(
-            barmode='stack',
-            title="📉 Evolución anual: Interés vs Capital",
-            xaxis_title="Año",
-            yaxis_title="UF",
-            height=450
-        )
-        st.plotly_chart(fig2, use_container_width=True)
+        for p in plazos_comunes:
+            if p == plazo:
+                continue
+            meses_ref = p * 12
+            tasa_mensual_ref = (1 + tasa_anual) ** (1/12) - 1
+            dividendo_uf_ref = credito_uf * tasa_mensual_ref / (1 - (1 + tasa_mensual_ref) ** -meses_ref)
+            dividendo_clp_ref = dividendo_uf_ref * uf_clp + seguro_mensual
+            renta_recomendada = dividendo_clp_ref / 0.25
+            total_uf = dividendo_uf_ref * meses_ref
+            intereses_uf = total_uf - credito_uf
+            total_clp = total_uf * uf_clp
+            intereses_clp = intereses_uf * uf_clp
 
-        # --- Diagnóstico Financiero Inteligente ---
-        st.subheader("💡 Diagnóstico Financiero Inteligente")
-        diagnosticos = []
+            comparacion_rapida.append([
+                f"{p} años",
+                f"{tasa_anual * 100:.2f}%",
+                f"{dividendo_uf_ref:.2f} UF",
+                f"${dividendo_clp_ref:,.0f}",
+                f"${renta_recomendada:,.0f}",
+                f"{total_uf:.2f} UF",
+                f"${total_clp:,.0f}",
+                f"{intereses_uf:.2f} UF",
+                f"${intereses_clp:,.0f}"
+            ])
 
-        pie_pct = pie_uf / precio_uf
-        ratio_total = monto_total_uf / credito_uf
+        df_comp = pd.DataFrame(comparacion_rapida, columns=[
+            "Plazo",
+            "Tasa (%)",
+            "Dividendo (UF)",
+            "Dividendo ($)",
+            "Renta sugerida ($)",
+            "Monto total pagar (UF)",
+            "Monto total pagar ($)",
+            "Intereses Totales (UF)",
+            "Intereses Totales ($)"
+        ])
+        st.dataframe(df_comp, height=380, use_container_width=True)
+        st.caption(f"*Valores con tasa {tasa_anual*100:.2f}% y UF = ${uf_clp:,.2f} al {pd.Timestamp.now().strftime('%d-%m-%Y')}*")
 
-        if tasa_anual < 0.035:
-            diagnosticos.append("🔵 Excelente tasa. Lograste condiciones muy competitivas.")
-        elif tasa_anual <= 0.045:
-            diagnosticos.append("🟢 Buena tasa. Estás dentro del rango óptimo actual.")
-        elif tasa_anual <= 0.055:
-            diagnosticos.append("🟡 Tasa aceptable, pero podrías buscar mejores opciones.")
-        else:
-            diagnosticos.append("🔴 Tasa alta. Evalúa cotizar con otros bancos o esperar mejores condiciones.")
+        # --- Diagnóstico financiero, gráficos y tabla ---
+        # (todo lo demás que ya tenías lo puedes dejar igual abajo de esto)
 
-        if pie_pct >= 0.25:
-            diagnosticos.append("🔵 Excelente pie inicial. Reduciste el monto y los intereses del crédito.")
-        elif pie_pct >= 0.20:
-            diagnosticos.append("🟢 Buen pie inicial. Cumples con lo recomendado por la banca.")
-        elif pie_pct >= 0.15:
-            diagnosticos.append("🟡 Pie aceptable. Considera aumentarlo si puedes.")
-        else:
-            diagnosticos.append("🔴 Pie muy bajo. Podrías enfrentar mayores intereses y restricciones.")
-
-        if plazo > 25:
-            diagnosticos.append("🟡 Plazo largo. Cuotas más bajas, pero pagas más intereses.")
-        elif plazo < 15:
-            diagnosticos.append("🟢 Plazo corto. Ahorro en intereses, pero cuota más exigente.")
-
-        if ratio_total > 2.0:
-            diagnosticos.append("🔴 Estás pagando más del doble del crédito en total. Revisa la tasa y plazo.")
-        elif ratio_total > 1.7:
-            diagnosticos.append("🟡 Costo total elevado. Ajustar plazo o tasa podría ayudar.")
-        else:
-            diagnosticos.append("🟢 Costo total razonable. Bien controlado.")
-
-        if sueldo_recomendado > 2_000_000:
-            diagnosticos.append("🟡 El dividendo requiere un ingreso mensual alto. Evalúa reducir el monto del crédito o aumentar el pie.")
-        elif sueldo_recomendado < 1_200_000:
-            diagnosticos.append("🟢 Buena relación cuota / ingreso estimado. Deberías poder cumplir con holgura.")
-
-        for d in diagnosticos:
-            st.markdown(f"- {d}")
-
-        # --- Tabla de amortización ---
-        df = pd.DataFrame(tabla, columns=["Mes", "Año", "Capital Pagado UF", "Interés Pagado UF", "Saldo Restante UF"])
-        with st.expander("📅 Ver tabla de amortización"):
-            st.dataframe(df.style.format({
-                "Capital Pagado UF": "{:.2f}",
-                "Interés Pagado UF": "{:.2f}",
-                "Saldo Restante UF": "{:.2f}"
-            }), height=400)
-            st.download_button("📥 Descargar tabla CSV", data=df.to_csv(index=False), file_name="amortizacion.csv")
-
-# --- Comparativa rápida por plazos típicos con misma tasa simulada ---
-st.subheader("📊 Comparativa rápida: distintos plazos con misma tasa simulada")
-
-plazos_comunes = [15, 20, 25, 30]
-comparacion_rapida = []
-
-for p in plazos_comunes:
-    if p == plazo:
-        continue  # evitar duplicar la simulación actual
-
-    meses_ref = p * 12
-    tasa_mensual_ref = (1 + tasa_anual) ** (1/12) - 1
-    dividendo_uf_ref = credito_uf * tasa_mensual_ref / (1 - (1 + tasa_mensual_ref) ** -meses_ref)
-    dividendo_clp_ref = dividendo_uf_ref * uf_clp + seguro_mensual
-    renta_recomendada = dividendo_clp_ref / 0.25
-    total_uf = dividendo_uf_ref * meses_ref
-    intereses_uf = total_uf - credito_uf
-    total_clp = total_uf * uf_clp
-    intereses_clp = intereses_uf * uf_clp
-
-    comparacion_rapida.append([
-        f"{p} años",
-        f"{tasa_anual * 100:.2f}%",
-        f"{dividendo_uf_ref:.2f} UF",
-        f"${dividendo_clp_ref:,.0f}",
-        f"${renta_recomendada:,.0f}",
-        f"{total_uf:.2f} UF",
-        f"${total_clp:,.0f}",
-        f"{intereses_uf:.2f} UF",
-        f"${intereses_clp:,.0f}"
-    ])
-
-df_comp = pd.DataFrame(comparacion_rapida, columns=[
-    "Plazo",
-    "Tasa (%)",
-    "Dividendo (UF)",
-    "Dividendo ($)",
-    "Renta sugerida ($)",
-    "Monto total pagar (UF)",
-    "Monto total pagar ($)",
-    "Intereses Totales (UF)",
-    "Intereses Totales ($)"
-])
-
-st.dataframe(df_comp, height=380, use_container_width=True)
-st.caption(f"*Valores calculados con tasa {tasa_anual*100:.2f}% y UF = ${uf_clp:,.2f} al {pd.Timestamp.now().strftime('%d-%m-%Y')}*")
-
-# --- Otros modos (placeholders) ---
+# --- Otros modos ---
 elif modo == "Inversionista":
     st.info("🔧 Modo Inversionista aún en desarrollo. Pronto podrás simular arriendo vs dividendo.")
 else:
     st.info("🧠 Modo Inteligente en construcción. Pronto te ayudará a encontrar el mejor escenario según tus metas.")
-
-
-
