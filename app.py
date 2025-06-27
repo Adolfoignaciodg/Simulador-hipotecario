@@ -300,16 +300,16 @@ elif modo == "Inversionista":
 
     col1, col2 = st.columns(2)
     with col1:
-        precio_uf = st.number_input("🏠 Precio propiedad (UF)", value=4000.0, min_value=1.0)
+        precio_uf = st.number_input("🏠 Precio propiedad (UF)", value=4000.0, min_value=1.0, key="precio_inv")
         pie_uf = st.number_input("💵 Pie inicial (UF)", value=precio_uf * 0.2,
-                                 min_value=precio_uf * 0.1, max_value=precio_uf)
-        plazo = st.slider("🗓️ Plazo del crédito (años)", 1, 30, 20)
+                                 min_value=precio_uf * 0.1, max_value=precio_uf, key="pie_inv")
+        plazo = st.slider("🗓️ Plazo del crédito (años)", 1, 30, 20, key="plazo_inv")
     with col2:
-        tasa_anual = st.number_input("📊 Tasa interés anual (%)", value=4.0, step=0.1) / 100
-        arriendo_clp = st.number_input("🏷️ Arriendo mensual estimado (CLP)", value=700000, step=10000)
-        seguro_mensual = st.number_input("🛡️ Seguro mensual (CLP)", value=10000, step=1000)
+        tasa_anual = st.number_input("📊 Tasa interés anual (%)", value=4.0, step=0.1, key="tasa_inv") / 100
+        arriendo_clp = st.number_input("🏷️ Arriendo mensual estimado (CLP)", value=700000, step=10000, key="arriendo_inv")
+        seguro_mensual = st.number_input("🛡️ Seguro mensual (CLP)", value=10000, step=1000, key="seguro_inv")
 
-    if st.button("📊 Simular inversión"):
+    if st.button("📊 Simular inversión", key="boton_inv"):
         credito_uf = precio_uf - pie_uf
         tasa_mensual = (1 + tasa_anual)**(1/12) - 1
         n_meses = plazo * 12
@@ -318,14 +318,14 @@ elif modo == "Inversionista":
         total_credito_clp = dividendo_clp * n_meses
 
         flujo_mensual_libre = arriendo_clp - dividendo_clp
-        recuperado = -pie_uf * uf_clp  # comienza negativo por el pie
+        recuperado = -pie_uf * uf_clp  # inversión inicial negativa
         mes_recuperacion = None
         flujo_acumulado = []
 
         for mes in range(1, n_meses + 1):
             recuperado += flujo_mensual_libre
             flujo_acumulado.append(recuperado)
-            if not mes_recuperacion and recuperado >= 0:
+            if mes_recuperacion is None and recuperado >= 0:
                 mes_recuperacion = mes
 
         total_arriendo = arriendo_clp * n_meses
@@ -344,7 +344,7 @@ elif modo == "Inversionista":
         else:
             st.error("❌ El arriendo mensual no cubre el dividendo. No es una inversión autosustentable.")
 
-        # --- Gráfico de recuperación de inversión ---
+        # Gráfico evolución flujo acumulado
         st.subheader("📈 Evolución de recuperación de inversión")
         df_flujo = pd.DataFrame({
             "Mes": list(range(1, n_meses + 1)),
@@ -360,7 +360,8 @@ elif modo == "Inversionista":
             name="Flujo acumulado"
         ))
 
-        fig.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="Punto de equilibrio", annotation_position="top left")
+        fig.add_hline(y=0, line_dash="dash", line_color="gray",
+                      annotation_text="Punto de equilibrio", annotation_position="top left")
         fig.update_layout(title="Flujo acumulado desde inversión inicial",
                           xaxis_title="Mes",
                           yaxis_title="CLP",
