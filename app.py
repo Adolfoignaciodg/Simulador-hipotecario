@@ -327,8 +327,14 @@ elif modo == "Inversionista":
 
     if st.session_state.beneficios:
         st.info(f"Total beneficios acumulados: **{total_beneficios:.2f} UF**")
-        for b in st.session_state.beneficios:
-            st.markdown(f"- {b['desc'] or 'Sin descripción'}: {b['monto']:.2f} UF")
+        for idx, b in enumerate(st.session_state.beneficios):
+            col1, col2 = st.columns([0.8, 0.2])
+            with col1:
+                st.markdown(f"- {b['desc'] or 'Sin descripción'}: **{b['monto']:.2f} UF**")
+            with col2:
+                if st.button(f"❌ Eliminar", key=f"eliminar_benef_{idx}"):
+                    st.session_state.beneficios.pop(idx)
+                    st.experimental_rerun()
 
     # --- Simulación ---
     if st.button("📊 Simular inversión", key="boton_inv"):
@@ -345,7 +351,7 @@ elif modo == "Inversionista":
 
         if arriendo_clp == 0:
             st.info(f"💡 Arriendo mínimo recomendado para recuperar inversión: ~${arriendo_minimo:,.0f} CLP mensuales")
-            arriendo_clp = arriendo_minimo  # se asigna para continuar la simulación
+            arriendo_clp = arriendo_minimo
         else:
             st.write(f"Arriendo ingresado: ${arriendo_clp:,.0f} CLP")
             if arriendo_clp >= arriendo_minimo:
