@@ -306,19 +306,55 @@ elif modo == "Inversionista":
         plazo = st.slider("🗓️ Plazo del crédito (años)", 1, 30, 20, key="plazo_inv")
     with col2:
         tasa_anual = st.number_input("📊 Tasa interés anual (%)", value=4.0, step=0.1, key="tasa_inv") / 100
-        arriendo_clp = st.number_input("🏷️ Arriendo mensual estimado (CLP)", value=700000, step=10000, key="arriendo_inv")
+        arriendo_clp = st.number_input("🏷️ Arriendo mensual estimado (CLP)", value=0, step=10000, key="arriendo_inv")
         seguro_mensual = st.number_input("🛡️ Seguro mensual (CLP)", value=10000, step=1000, key="seguro_inv")
 
+    # --- Sección Beneficios/Subsidios ---
+    st.markdown("### 🎁 Agregar beneficios, subsidios o descuentos")
+
+    if "beneficios" not in st.session_state:
+        st.session_state.beneficios = []
+
+    with st.form("form_beneficios"):
+        monto_benef = st.number_input("Monto beneficio (UF)", min_value=0.0, step=0.1, format="%.2f")
+        desc_benef = st.text_input("Descripción del beneficio (opcional)")
+        agregar_benef = st.form_submit_button("➕ Agregar beneficio")
+
+    if agregar_benef and monto_benef > 0:
+        st.session_state.beneficios.append({"monto": monto_benef, "desc": desc_benef})
+
+    total_beneficios = sum(b["monto"] for b in st.session_state.beneficios)
+
+    if st.session_state.beneficios:
+        st.info(f"Total beneficios acumulados: **{total_beneficios:.2f} UF**")
+        for b in st.session_state.beneficios:
+            st.markdown(f"- {b['desc'] or 'Sin descripción'}: {b['monto']:.2f} UF")
+
+    # --- Simulación ---
     if st.button("📊 Simular inversión", key="boton_inv"):
-        credito_uf = precio_uf - pie_uf
+
+        credito_uf = precio_uf - pie_uf - total_beneficios
+        credito_uf = max(credito_uf, 0)
         tasa_mensual = (1 + tasa_anual)**(1/12) - 1
         n_meses = plazo * 12
         dividendo_uf = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual)**-n_meses)
         dividendo_clp = dividendo_uf * uf_clp + seguro_mensual
-        total_credito_clp = dividendo_clp * n_meses
+
+        pie_clp = pie_uf * uf_clp
+        arriendo_minimo = dividendo_clp + (pie_clp / n_meses)
+
+        if arriendo_clp == 0:
+            st.info(f"💡 Arriendo mínimo recomendado para recuperar inversión: ~${arriendo_minimo:,.0f} CLP mensuales")
+            arriendo_clp = arriendo_minimo  # se asigna para continuar la simulación
+        else:
+            st.write(f"Arriendo ingresado: ${arriendo_clp:,.0f} CLP")
+            if arriendo_clp >= arriendo_minimo:
+                st.success(f"✅ El arriendo cubre la inversión. Está por encima del mínimo recomendado (${arriendo_minimo:,.0f}).")
+            else:
+                st.warning(f"⚠️ El arriendo es menor al mínimo recomendado (${arriendo_minimo:,.0f}), no recuperarás la inversión en el plazo.")
 
         flujo_mensual_libre = arriendo_clp - dividendo_clp
-        recuperado = -pie_uf * uf_clp  # inversión inicial negativa
+        recuperado = -pie_clp
         mes_recuperacion = None
         flujo_acumulado = []
 
@@ -329,8 +365,9 @@ elif modo == "Inversionista":
                 mes_recuperacion = mes
 
         total_arriendo = arriendo_clp * n_meses
-        utilidad_neta = total_arriendo - total_credito_clp - pie_uf * uf_clp
+        utilidad_neta = total_arriendo - (dividendo_clp * n_meses) - pie_clp
 
+        # --- Métricas clave ---
         st.metric("Dividendo mensual estimado", f"~${dividendo_clp:,.0f}")
         st.metric("Diferencia mensual (Arriendo - Dividendo)", f"~${flujo_mensual_libre:,.0f}")
         st.metric("Utilidad estimada al final del plazo", f"~${utilidad_neta:,.0f}")
@@ -344,7 +381,7 @@ elif modo == "Inversionista":
         else:
             st.error("❌ El arriendo mensual no cubre el dividendo. No es una inversión autosustentable.")
 
-        # Gráfico evolución flujo acumulado
+        # --- Gráfico de recuperación ---
         st.subheader("📈 Evolución de recuperación de inversión")
         df_flujo = pd.DataFrame({
             "Mes": list(range(1, n_meses + 1)),
