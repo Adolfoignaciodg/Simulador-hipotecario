@@ -157,44 +157,24 @@ if modo == "Comprador para vivir":
             st.metric("Sueldo requerido (25%)", f"~{sueldo_recomendado:,.0f} CLP")
 
         # --- Gráfico circular elegante ---
-        fig1 = go.Figure(data=[go.Pie(labels=["Capital", "Interés"],
-                                      values=[capital_total, interes_total],
-                                      hole=0.4)])
-        fig1.update_layout(title="Distribución total del pago", height=400)
-        st.plotly_chart(fig1, use_container_width=True)
-
-        # --- Barras anuales con tooltip en CLP ---
-        years = list(anios.keys())
-
-        fig2 = go.Figure()
-
-        fig2.add_trace(go.Bar(
-            x=years,
-            y=[anios[y]["int"] for y in years],
-            name="Interés",
-            marker_color="orange",
-            customdata=[round(anios[y]["int"] * uf_clp) for y in years],
-            hovertemplate="<b>Año %{x}</b><br>Interés: %{y:.2f} UF<br>(~$%{customdata:,} CLP)<extra></extra>"
-        ))
-
-        fig2.add_trace(go.Bar(
-            x=years,
-            y=[anios[y]["cap"] for y in years],
-            name="Capital",
-            marker_color="teal",
-            customdata=[round(anios[y]["cap"] * uf_clp) for y in years],
-            hovertemplate="<b>Año %{x}</b><br>Capital: %{y:.2f} UF<br>(~$%{customdata:,} CLP)<extra></extra>"
-        ))
-
-        fig2.update_layout(
-            barmode='stack',
-            title="📉 Evolución anual: Interés vs Capital",
-            xaxis_title="Año",
-            yaxis_title="UF",
-            height=450
-        )
-
-        st.plotly_chart(fig2, use_container_width=True)
+# --- Gráfico circular elegante con tooltip mejorado ---
+fig1 = go.Figure(data=[go.Pie(
+    labels=["Capital", "Interés"],
+    values=[capital_total, interes_total],
+    hole=0.4,
+    marker=dict(colors=["#1ABC9C", "#F39C12"]),
+    customdata=[round(capital_total * uf_clp), round(interes_total * uf_clp)],
+    hovertemplate="<b>%{label}</b><br>" +
+                  "Porcentaje: %{percent}<br>" +
+                  "Monto: %{value:.2f} UF<br>" +
+                  "Aprox: $%{customdata:,} CLP<extra></extra>"
+)])
+fig1.update_layout(
+    title="Distribución total del pago",
+    height=400,
+    showlegend=True
+)
+st.plotly_chart(fig1, use_container_width=True)
 
         # --- Diagnóstico Financiero Inteligente ---
         st.subheader("💡 Diagnóstico Financiero Inteligente")
