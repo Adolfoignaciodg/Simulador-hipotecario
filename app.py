@@ -336,101 +336,77 @@ elif modo == "Inversionista":
                     st.session_state.beneficios.pop(idx)
                     st.experimental_rerun()
 
-    # --- Simulación ---
     if st.button("📊 Simular inversión", key="boton_inv"):
-
-        credito_uf = precio_uf - pie_uf - total_beneficios
-        credito_uf = max(credito_uf, 0)
-        tasa_mensual = (1 + tasa_anual)**(1/12) - 1
+        credito_uf = max(precio_uf - pie_uf - total_beneficios, 0)
+        tasa_mensual = (1 + tasa_anual) ** (1/12) - 1
         n_meses = plazo * 12
-        dividendo_uf = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual)**-n_meses)
-        dividendo_clp = dividendo_uf * uf_clp + seguro_mensual
-
-        # ✅ Pie real: solo lo que tú pusiste
         inversion_real_clp = pie_uf * uf_clp
 
-        # 🧮 Arriendo mínimo necesario para recuperar tu inversión
-        arriendo_minimo = dividendo_clp + (inversion_real_clp / n_meses)
-
-        if arriendo_clp == 0:
-            st.info(f"💡 Arriendo mínimo recomendado para recuperar inversión: ~${arriendo_minimo:,.0f} CLP mensuales")
-            arriendo_clp = arriendo_minimo
-        else:
-            st.write(f"Arriendo ingresado: ${arriendo_clp:,.0f} CLP")
-            if arriendo_clp >= arriendo_minimo:
-                st.success(f"✅ El arriendo cubre la inversión. Está por encima del mínimo recomendado (${arriendo_minimo:,.0f}).")
-            else:
-                st.warning(f"⚠️ El arriendo es menor al mínimo recomendado (${arriendo_minimo:,.0f}), no recuperarás la inversión en el plazo.")
-
-        flujo_mensual_libre = arriendo_clp - dividendo_clp
+        # Amortización real
+        saldo = credito_uf
+        tabla = []
+        flujo_libre = []
+        flujo_acumulado = []
+        saldo_clp = credito_uf * uf_clp
         recuperado = -inversion_real_clp
         mes_recuperacion = None
-        flujo_acumulado = []
 
         for mes in range(1, n_meses + 1):
-            recuperado += flujo_mensual_libre
+            interes_mes = saldo * tasa_mensual
+            amortizacion_mes = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual)**-n_meses) - interes_mes
+            saldo -= amortizacion_mes
+            dividendo_mes_uf = interes_mes + amortizacion_mes
+            dividendo_clp = dividendo_mes_uf * uf_clp + seguro_mensual
+            flujo_mes = arriendo_clp - dividendo_clp
+            recuperado += flujo_mes
+            flujo_libre.append(flujo_mes)
             flujo_acumulado.append(recuperado)
             if mes_recuperacion is None and recuperado >= 0:
                 mes_recuperacion = mes
 
-        total_arriendo = arriendo_clp * n_meses
-        utilidad_neta = total_arriendo - (dividendo_clp * n_meses) - inversion_real_clp
+            tabla.append({
+                "Mes": mes,
+                "Saldo (UF)": saldo,
+                "Interés (UF)": interes_mes,
+                "Amortización (UF)": amortizacion_mes,
+                "Dividendo (UF)": dividendo_mes_uf,
+                "Dividendo (CLP)": dividendo_clp,
+                "Flujo Libre (CLP)": flujo_mes,
+                "Flujo Acumulado (CLP)": recuperado
+            })
 
-        # --- Métricas clave ---
-        st.metric("Dividendo mensual estimado", f"~${dividendo_clp:,.0f}")
-        st.metric("Diferencia mensual (Arriendo - Dividendo)", f"~${flujo_mensual_libre:,.0f}")
-        st.metric("Utilidad estimada al final del plazo", f"~${utilidad_neta:,.0f}")
+        df_tabla = pd.DataFrame(tabla)
+
+        st.metric("Dividendo mensual promedio", f"~${df_tabla['Dividendo (CLP)'].mean():,.0f}")
+        st.metric("Flujo mensual promedio", f"~${np.mean(flujo_libre):,.0f}")
         st.metric("Tu inversión real (pie sin subsidios)", f"${inversion_real_clp:,.0f}")
 
-        if flujo_mensual_libre > 0:
-            if mes_recuperacion:
-                anios = mes_recuperacion // 12
-                st.success(f"✅ Recuperas tu inversión inicial (pie real) en {mes_recuperacion} meses (~{anios} años).")
-            else:
-                st.warning("⚠️ No alcanzas a recuperar el pie durante el plazo del crédito.")
+        if mes_recuperacion:
+            anios = mes_recuperacion // 12
+            st.success(f"✅ Recuperas tu inversión inicial en {mes_recuperacion} meses (~{anios} años).")
         else:
-            st.error("❌ El arriendo mensual no cubre el dividendo. No es una inversión autosustentable.")
+            st.warning("⚠️ No alcanzas a recuperar el pie durante el plazo.")
 
-        # --- Gráfico de recuperación ---
-        st.subheader("📈 Evolución de recuperación de inversión")
-        df_flujo = pd.DataFrame({
-            "Mes": list(range(1, n_meses + 1)),
-            "Flujo acumulado (CLP)": flujo_acumulado
-        })
-
+        st.subheader("📈 Gráfico: Flujo Acumulado")
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=df_flujo["Mes"],
-            y=df_flujo["Flujo acumulado (CLP)"],
-            mode="lines+markers",
-            line=dict(color="green"),
-            name="Flujo acumulado"
-        ))
-
+        fig.add_trace(go.Scatter(x=df_tabla["Mes"], y=df_tabla["Flujo Acumulado (CLP)"],
+                                 mode="lines+markers", name="Flujo acumulado", line=dict(color="green")))
         fig.add_hline(y=0, line_dash="dash", line_color="gray",
                       annotation_text="Punto de equilibrio", annotation_position="top left")
-        fig.update_layout(title="Flujo acumulado desde inversión inicial",
-                          xaxis_title="Mes",
-                          yaxis_title="CLP",
-                          height=400)
+        fig.update_layout(xaxis_title="Mes", yaxis_title="CLP", height=400)
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- Métricas financieras adicionales ---
-        st.subheader("📊 Métricas financieras adicionales")
+        st.subheader("📊 Tabla de Amortización")
+        st.dataframe(df_tabla[["Mes", "Saldo (UF)", "Interés (UF)", "Amortización (UF)", "Dividendo (CLP)", "Flujo Libre (CLP)"]].round(2), use_container_width=True)
 
-        st.write(f"📦 **Flujo acumulado al final del plazo:** ${flujo_acumulado[-1]:,.0f} CLP")
-
-        if inversion_real_clp > 0:
-            rentabilidad_total = utilidad_neta / inversion_real_clp
-            st.write(f"📈 **Rentabilidad total estimada:** {rentabilidad_total*100:.2f}%")
-
-            # Calcular TIR
-            flujos = [-inversion_real_clp] + [flujo_mensual_libre] * n_meses
-            try:
-                tir_mensual = np.irr(flujos)
-                tir_anual = (1 + tir_mensual)**12 - 1
-                st.write(f"💹 **TIR estimada anual:** {tir_anual*100:.2f}%")
-            except Exception:
-                st.warning("💹 **TIR:** No se pudo calcular (flujo no recuperado o no converge)")
+        st.subheader("📦 Rentabilidad y TIR")
+        utilidad_total = sum(flujo_libre)
+        st.write(f"📈 Rentabilidad estimada total: **{(utilidad_total / inversion_real_clp) * 100:.2f}%**")
+        try:
+            tir_mensual = np.irr([-inversion_real_clp] + flujo_libre)
+            tir_anual = (1 + tir_mensual) ** 12 - 1
+            st.write(f"💹 TIR anual estimada: **{tir_anual * 100:.2f}%**")
+        except:
+            st.warning("No se pudo calcular la TIR (flujo no converge)")
 else:
     st.info("🧠 Modo Inteligente en construcción. Pronto te ayudará a encontrar el mejor escenario según tus metas.") 
