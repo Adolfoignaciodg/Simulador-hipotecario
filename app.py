@@ -296,6 +296,75 @@ if modo == "Comprador para vivir":
 
 # --- Otros modos (placeholders) ---
 elif modo == "Inversionista":
-    st.info("🔧 Modo Inversionista aún en desarrollo. Pronto podrás simular arriendo vs dividendo.")
+    st.subheader("🏢 Simulación Modo Inversionista")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        precio_uf = st.number_input("🏠 Precio propiedad (UF)", value=4000.0, min_value=1.0)
+        pie_uf = st.number_input("💵 Pie inicial (UF)", value=precio_uf * 0.2,
+                                 min_value=precio_uf * 0.1, max_value=precio_uf)
+        plazo = st.slider("🗓️ Plazo del crédito (años)", 1, 30, 20)
+    with col2:
+        tasa_anual = st.number_input("📊 Tasa interés anual (%)", value=4.0, step=0.1) / 100
+        arriendo_clp = st.number_input("🏷️ Arriendo mensual estimado (CLP)", value=700000, step=10000)
+        seguro_mensual = st.number_input("🛡️ Seguro mensual (CLP)", value=10000, step=1000)
+
+    if st.button("📊 Simular inversión"):
+        credito_uf = precio_uf - pie_uf
+        tasa_mensual = (1 + tasa_anual)**(1/12) - 1
+        n_meses = plazo * 12
+        dividendo_uf = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual)**-n_meses)
+        dividendo_clp = dividendo_uf * uf_clp + seguro_mensual
+        total_credito_clp = dividendo_clp * n_meses
+
+        flujo_mensual_libre = arriendo_clp - dividendo_clp
+        recuperado = -pie_uf * uf_clp  # comienza negativo por el pie
+        mes_recuperacion = None
+        flujo_acumulado = []
+
+        for mes in range(1, n_meses + 1):
+            recuperado += flujo_mensual_libre
+            flujo_acumulado.append(recuperado)
+            if not mes_recuperacion and recuperado >= 0:
+                mes_recuperacion = mes
+
+        total_arriendo = arriendo_clp * n_meses
+        utilidad_neta = total_arriendo - total_credito_clp - pie_uf * uf_clp
+
+        st.metric("Dividendo mensual estimado", f"~${dividendo_clp:,.0f}")
+        st.metric("Diferencia mensual (Arriendo - Dividendo)", f"~${flujo_mensual_libre:,.0f}")
+        st.metric("Utilidad estimada al final del plazo", f"~${utilidad_neta:,.0f}")
+
+        if flujo_mensual_libre > 0:
+            if mes_recuperacion:
+                anios = mes_recuperacion // 12
+                st.success(f"✅ Recuperas tu inversión inicial (pie) en {mes_recuperacion} meses (~{anios} años).")
+            else:
+                st.warning("⚠️ No alcanzas a recuperar el pie durante el plazo del crédito.")
+        else:
+            st.error("❌ El arriendo mensual no cubre el dividendo. No es una inversión autosustentable.")
+
+        # --- Gráfico de recuperación de inversión ---
+        st.subheader("📈 Evolución de recuperación de inversión")
+        df_flujo = pd.DataFrame({
+            "Mes": list(range(1, n_meses + 1)),
+            "Flujo acumulado (CLP)": flujo_acumulado
+        })
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=df_flujo["Mes"],
+            y=df_flujo["Flujo acumulado (CLP)"],
+            mode="lines+markers",
+            line=dict(color="green"),
+            name="Flujo acumulado"
+        ))
+
+        fig.add_hline(y=0, line_dash="dash", line_color="gray", annotation_text="Punto de equilibrio", annotation_position="top left")
+        fig.update_layout(title="Flujo acumulado desde inversión inicial",
+                          xaxis_title="Mes",
+                          yaxis_title="CLP",
+                          height=400)
+        st.plotly_chart(fig, use_container_width=True)
 else:
     st.info("🧠 Modo Inteligente en construcción. Pronto te ayudará a encontrar el mejor escenario según tus metas.") 
