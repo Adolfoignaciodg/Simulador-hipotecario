@@ -155,62 +155,39 @@ if modo == "Comprador para vivir":
         comparacion = []
 
         for p in plazos_comunes:
-            if p == plazo:
-                # Agregar fila para el plazo simulado con etiqueta especial
-                meses_alt = p * 12
-                tasa_mensual_alt = (1 + tasa_anual)**(1/12) - 1
-                dividendo_uf_alt = credito_uf * tasa_mensual_alt / (1 - (1 + tasa_mensual_alt)**-meses_alt)
-                dividendo_clp_alt = dividendo_uf_alt * uf_clp + seguro_mensual
-                renta_sugerida_alt = dividendo_clp_alt / 0.25
-                total_pagar_uf = dividendo_uf_alt * meses_alt
-                total_pagar_clp = dividendo_clp_alt * meses_alt
-                interes_total_uf = total_pagar_uf - credito_uf
+            meses_alt = p * 12
+            tasa_mensual_alt = (1 + tasa_anual)**(1/12) - 1
+            dividendo_uf_alt = credito_uf * tasa_mensual_alt / (1 - (1 + tasa_mensual_alt)**-meses_alt)
+            dividendo_clp_alt = dividendo_uf_alt * uf_clp + seguro_mensual
+            renta_sugerida_alt = dividendo_clp_alt / 0.25
+            total_pagar_uf = dividendo_uf_alt * meses_alt
+            total_pagar_clp = dividendo_clp_alt * meses_alt
+            interes_total_uf = total_pagar_uf - credito_uf
+            interes_total_clp = interes_total_uf * uf_clp
 
-                comparacion.append([
-                    f"{p} años",
-                    f"{tasa_anual*100:.2f} %",
-                    f"${dividendo_clp_alt:,.0f}",
-                    f"${renta_sugerida_alt:,.0f}",
-                    f"{total_pagar_uf:,.2f} UF",
-                    f"{interes_total_uf:,.2f} UF",
-                    f"${total_pagar_clp:,.0f}",
-                    "✔️ Simulado"
-                ])
-            else:
-                meses_alt = p * 12
-                tasa_mensual_alt = (1 + tasa_anual)**(1/12) - 1
-                dividendo_uf_alt = credito_uf * tasa_mensual_alt / (1 - (1 + tasa_mensual_alt)**-meses_alt)
-                dividendo_clp_alt = dividendo_uf_alt * uf_clp + seguro_mensual
-                renta_sugerida_alt = dividendo_clp_alt / 0.25
-                total_pagar_uf = dividendo_uf_alt * meses_alt
-                total_pagar_clp = dividendo_clp_alt * meses_alt
-                interes_total_uf = total_pagar_uf - credito_uf
-
-                comparacion.append([
-                    f"{p} años",
-                    f"{tasa_anual*100:.2f} %",
-                    f"${dividendo_clp_alt:,.0f}",
-                    f"${renta_sugerida_alt:,.0f}",
-                    f"{total_pagar_uf:,.2f} UF",
-                    f"{interes_total_uf:,.2f} UF",
-                    f"${total_pagar_clp:,.0f}",
-                    ""
-                ])
+            comparacion.append([
+                f"{p} años",
+                f"{tasa_anual*100:.2f} %",
+                f"{dividendo_uf_alt:,.2f} UF ~ ${dividendo_clp_alt:,.0f}",
+                f"{renta_sugerida_alt/uf_clp:,.2f} UF ~ ${renta_sugerida_alt:,.0f}",
+                f"{total_pagar_uf:,.2f} UF ~ ${total_pagar_clp:,.0f}",
+                f"{interes_total_uf:,.2f} UF ~ ${interes_total_clp:,.0f}",
+                "✔️ Simulado" if p == plazo else ""
+            ])
 
         df_comp = pd.DataFrame(comparacion, columns=[
-            "Plazo",
+            "↑ Plazo",
             "Tasa (%)",
-            "Dividendo mensual ($)",
-            "Renta sugerida ($)",
-            "Monto total a pagar (UF)",
-            "Intereses totales (UF)",
-            "Monto total a pagar ($)",
+            "Dividendo mensual (UF ~ CLP)",
+            "Renta sugerida (UF ~ CLP)",
+            "Monto total a pagar (UF ~ CLP)",
+            "Intereses totales (UF ~ CLP)",
             "Simulado"
         ])
 
         # Función para resaltar fila con el plazo simulado
         def highlight_simulado(row):
-            return ['background-color: #D0E9FF; font-weight: bold;' if row['Simulado'] == "✔️ Simulado" else '' for _ in row]
+            return ['background-color: #D0E9FF; font-weight: bold;' if row['Simulado'] else '' for _ in row]
 
         df_styled = df_comp.style.apply(highlight_simulado, axis=1)
 
