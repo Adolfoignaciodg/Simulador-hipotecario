@@ -194,6 +194,9 @@ if modo == "Comprador para vivir":
             interes_total_uf = total_pagar_uf - credito_uf
             interes_total_clp = interes_total_uf * uf_clp
 
+            monto_total_con_pie_uf = pie_uf + total_pagar_uf
+            monto_total_con_pie_clp = monto_total_con_pie_uf * uf_clp
+
             comparacion.append([
                 f"{p} años",
                 f"{tasa_anual*100:.2f} %",
@@ -201,6 +204,7 @@ if modo == "Comprador para vivir":
                 f"{renta_sugerida_alt/uf_clp:,.2f} UF ~ ${renta_sugerida_alt:,.0f}",
                 f"{total_pagar_uf:,.2f} UF ~ ${total_pagar_clp:,.0f}",
                 f"{interes_total_uf:,.2f} UF ~ ${interes_total_clp:,.0f}",
+                f"{monto_total_con_pie_uf:,.2f} UF ~ ${monto_total_con_pie_clp:,.0f}",
                 "✔️ Simulado" if p == plazo else ""
             ])
 
@@ -211,6 +215,7 @@ if modo == "Comprador para vivir":
             "Renta sugerida (UF ~ CLP)",
             "Monto total a pagar (UF ~ CLP)",
             "Intereses totales (UF ~ CLP)",
+            "Monto total a pagar con Pie (UF ~ CLP)",
             "Simulado"
         ])
 
@@ -224,17 +229,17 @@ if modo == "Comprador para vivir":
         st.dataframe(df_styled, use_container_width=True)
         st.caption(f"*Comparativa estimada con tasa {tasa_anual*100:.2f}% y UF = ${uf_clp:,.2f} al {pd.Timestamp.now().strftime('%d-%m-%Y')}*")
 
-        # --- Gráfico circular elegante ---
+        # --- Gráfico circular elegante con Pie incluido ---
         fig1 = go.Figure(data=[go.Pie(
-            labels=["Capital", "Interés"],
-            values=[capital_total, interes_total],
+            labels=["Pie Inicial", "Capital", "Interés"],
+            values=[pie_uf, capital_total, interes_total],
             hole=0.4,
-            marker=dict(colors=["#1ABC9C", "#F39C12"]),
-            customdata=[round(capital_total * uf_clp), round(interes_total * uf_clp)],
-            hovertemplate="<b>%{label}</b><br>Porcentaje: %{percent}<br>Monto: %{value:.2f} UF<br>~$%{customdata:,} CLP<extra></extra>"
+            marker=dict(colors=["#2980B9", "#1ABC9C", "#F39C12"]),
+            customdata=[round(pie_uf * uf_clp), round(capital_total * uf_clp), round(interes_total * uf_clp)],
+            hovertemplate="<b>%{label}</b><br>Monto: %{value:.2f} UF<br>~$%{customdata:,} CLP<extra></extra>"
         )])
         fig1.update_layout(
-            title="Distribución total del pago",
+            title="Distribución total del pago (incluyendo Pie Inicial)",
             height=400,
             showlegend=True
         )
