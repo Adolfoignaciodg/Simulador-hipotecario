@@ -85,6 +85,30 @@ with st.sidebar:
 # --- Modo de simulación ---
 modo = st.radio("Selecciona tu modo", ["Comprador para vivir", "Inversionista", "🧠 Recomendador Inteligente"])
 
+# --- Función para manejar beneficios/subsidios en modo Comprador ---
+def manejar_beneficios():
+    st.markdown("### 🎁 Agregar beneficios, subsidios o descuentos")
+    if "beneficios" not in st.session_state:
+        st.session_state.beneficios = []
+    with st.form("form_beneficios"):
+        monto_benef = st.number_input("Monto beneficio (UF)", min_value=0.0, step=0.1, format="%.2f")
+        desc_benef = st.text_input("Descripción del beneficio (opcional)")
+        agregar_benef = st.form_submit_button("➕ Agregar beneficio")
+    if agregar_benef and monto_benef > 0:
+        st.session_state.beneficios.append({"monto": monto_benef, "desc": desc_benef})
+    total_beneficios = sum(b["monto"] for b in st.session_state.beneficios)
+    if st.session_state.beneficios:
+        st.info(f"Total beneficios acumulados: **{total_beneficios:.2f} UF**")
+        for idx, b in enumerate(st.session_state.beneficios):
+            col1_b, col2_b = st.columns([0.8, 0.2])
+            with col1_b:
+                st.markdown(f"- {b['desc'] or 'Sin descripción'}: **{b['monto']:.2f} UF**")
+            with col2_b:
+                if st.button(f"❌ Eliminar", key=f"eliminar_benef_{idx}"):
+                    st.session_state.beneficios.pop(idx)
+                    st.experimental_rerun()
+    return total_beneficios
+
 # --- Simulación: Comprador para vivir ---
 if modo == "Comprador para vivir":
     col1, col2 = st.columns(2)
@@ -105,8 +129,12 @@ if modo == "Comprador para vivir":
     else:
         prepago_monto, prepago_ano = 0, 0
 
+    # Aquí agregamos los beneficios/subsidios para "Comprador para vivir"
+    total_beneficios = manejar_beneficios()
+
     if st.button("🔄 Calcular Crédito"):
-        credito_uf = precio_uf - pie_uf
+        # Crédito ajustado descontando beneficios/subsidios
+        credito_uf = max(precio_uf - pie_uf - total_beneficios, 0)
         credito_clp = credito_uf * uf_clp  # monto crédito en CLP
         tasa_mensual = (1 + tasa_anual)**(1/12) - 1
         n_meses = plazo * 12
@@ -149,6 +177,7 @@ if modo == "Comprador para vivir":
         with c2:
             st.metric("Intereses totales", f"{interes_total:,.2f} UF", f"~${interes_total * uf_clp:,.0f} CLP")
             st.metric("Sueldo requerido (25%)", f"~${sueldo_recomendado:,.0f} CLP")
+            st.metric("Beneficios/Subsidios aplicados", f"{total_beneficios:.2f} UF")
 
         # --- Comparativa rápida de otros plazos ---
         plazos_comunes = [15, 20, 25, 30]
@@ -244,7 +273,7 @@ if modo == "Comprador para vivir":
         diagnosticos = []
 
         pie_pct = pie_uf / precio_uf
-        ratio_total = monto_total_uf / credito_uf
+        ratio_total = monto_total_uf / credito_uf if credito_uf > 0 else float('inf')
 
         if tasa_anual < 0.035:
             diagnosticos.append("🔵 Excelente tasa. Lograste condiciones muy competitivas.")
@@ -294,7 +323,7 @@ if modo == "Comprador para vivir":
             }), height=400)
             st.download_button("📥 Descargar tabla CSV", data=df.to_csv(index=False), file_name="amortizacion.csv")
 
-# --- Otros modos (placeholders) ---
+# --- Otros modos (mantengo igual) ---
 elif modo == "Inversionista":
     st.subheader("🏢 Simulación Modo Inversionista")
 
@@ -413,4 +442,4 @@ elif modo == "Inversionista":
         except:
             st.warning("No se pudo calcular la TIR (flujo no converge)")
 else:
-    st.info("🧠 Modo Inteligente en construcción. Pronto te ayudará a encontrar el mejor escenario según tus metas.") 
+    st.info("🧠 Modo Inteligente en construcción. Pronto te ayudará a encontrar el mejor escenario según tus metas.")
