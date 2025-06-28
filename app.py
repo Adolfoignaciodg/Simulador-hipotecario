@@ -129,13 +129,11 @@ if modo == "Comprador para vivir":
     else:
         prepago_monto, prepago_ano = 0, 0
 
-    # Aquí agregamos los beneficios/subsidios para "Comprador para vivir"
     total_beneficios = manejar_beneficios()
 
     if st.button("🔄 Calcular Crédito"):
-        # Crédito ajustado descontando beneficios/subsidios
         credito_uf = max(precio_uf - pie_uf - total_beneficios, 0)
-        credito_clp = credito_uf * uf_clp  # monto crédito en CLP
+        credito_clp = credito_uf * uf_clp
         tasa_mensual = (1 + tasa_anual)**(1/12) - 1
         n_meses = plazo * 12
         dividendo_uf = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual)**-n_meses)
@@ -179,7 +177,7 @@ if modo == "Comprador para vivir":
             st.metric("Sueldo requerido (25%)", f"~${sueldo_recomendado:,.0f} CLP")
             st.metric("Beneficios/Subsidios aplicados", f"{total_beneficios:.2f} UF")
 
-        # --- Comparativa rápida de otros plazos ---
+        # --- Comparativa rápida de otros plazos con nueva columna Monto total a pagar (Pie + Crédito + Intereses) ---
         plazos_comunes = [15, 20, 25, 30]
         comparacion = []
 
@@ -189,30 +187,46 @@ if modo == "Comprador para vivir":
             dividendo_uf_alt = credito_uf * tasa_mensual_alt / (1 - (1 + tasa_mensual_alt)**-meses_alt)
             dividendo_clp_alt = dividendo_uf_alt * uf_clp + seguro_mensual
             renta_sugerida_alt = dividendo_clp_alt / 0.25
-            total_pagar_uf = dividendo_uf_alt * meses_alt
-            total_pagar_clp = dividendo_clp_alt * meses_alt
-            interes_total_uf = total_pagar_uf - credito_uf
+            total_pagar_uf_credito = dividendo_uf_alt * meses_alt
+            total_pagar_clp_credito = dividendo_clp_alt * meses_alt
+            interes_total_uf = total_pagar_uf_credito - credito_uf
             interes_total_clp = interes_total_uf * uf_clp
+
+            # Nuevo total incluyendo Pie
+            total_pagar_uf_con_pie = total_pagar_uf_credito + pie_uf
+            total_pagar_clp_con_pie = total_pagar_clp_credito + (pie_uf * uf_clp)
+
+            # Tooltip desglosado para monto total a pagar
+            tooltip = (
+                f"Pie: {pie_uf:.2f} UF (~${pie_uf * uf_clp:,.0f} CLP)<br>"
+                f"Crédito: {credito_uf:.2f} UF (~${credito_clp:,.0f} CLP)<br>"
+                f"Intereses: {interes_total_uf:.2f} UF (~${interes_total_clp:,.0f} CLP)<br>"
+                f"<b>Total final: {total_pagar_uf_con_pie:.2f} UF (~${total_pagar_clp_con_pie:,.0f} CLP)</b>"
+            )
 
             comparacion.append([
                 f"{p} años",
                 f"{tasa_anual*100:.2f} %",
                 f"{dividendo_uf_alt:,.2f} UF ~ ${dividendo_clp_alt:,.0f}",
                 f"{renta_sugerida_alt/uf_clp:,.2f} UF ~ ${renta_sugerida_alt:,.0f}",
-                f"{total_pagar_uf:,.2f} UF ~ ${total_pagar_clp:,.0f}",
+                f"{total_pagar_uf_con_pie:,.2f} UF ~ ${total_pagar_clp_con_pie:,.0f}",  # Monto total con Pie
+                tooltip,  # Guardamos tooltip aquí para usar después (no visible en tabla)
                 f"{interes_total_uf:,.2f} UF ~ ${interes_total_clp:,.0f}",
                 "✔️ Simulado" if p == plazo else ""
             ])
 
-        df_comp = pd.DataFrame(comparacion, columns=[
-            "↑ Plazo",
-            "Tasa (%)",
-            "Dividendo mensual (UF ~ CLP)",
-            "Renta sugerida (UF ~ CLP)",
-            "Monto total a pagar (UF ~ CLP)",
-            "Intereses totales (UF ~ CLP)",
-            "Simulado"
-        ])
+        # Creamos DataFrame sin la columna tooltip para mostrar
+        df_comp = pd.DataFrame(
+            [row[:5] + row[6:] for row in comparacion],
+            columns=[
+                "↑ Plazo",
+                "Tasa (%)",
+                "Dividendo mensual (UF ~ CLP)",
+                "Renta sugerida (UF ~ CLP)",
+                "Monto total a pagar (UF ~ CLP)",
+                "Intereses totales (UF ~ CLP)",
+                "Simulado"
+            ])
 
         # Función para resaltar fila con el plazo simulado
         def highlight_simulado(row):
@@ -224,17 +238,25 @@ if modo == "Comprador para vivir":
         st.dataframe(df_styled, use_container_width=True)
         st.caption(f"*Comparativa estimada con tasa {tasa_anual*100:.2f}% y UF = ${uf_clp:,.2f} al {pd.Timestamp.now().strftime('%d-%m-%Y')}*")
 
-        # --- Gráfico circular elegante ---
+        # --- Gráfico circular con Pie como tercer segmento ---
         fig1 = go.Figure(data=[go.Pie(
-            labels=["Capital", "Interés"],
-            values=[capital_total, interes_total],
+            labels=["Pie", "Capital", "Interés"],
+            values=[pie_uf, capital_total, interes_total],
             hole=0.4,
-            marker=dict(colors=["#1ABC9C", "#F39C12"]),
-            customdata=[round(capital_total * uf_clp), round(interes_total * uf_clp)],
-            hovertemplate="<b>%{label}</b><br>Porcentaje: %{percent}<br>Monto: %{value:.2f} UF<br>~$%{customdata:,} CLP<extra></extra>"
+            marker=dict(colors=["#3498DB", "#1ABC9C", "#F39C12"]),
+            customdata=[
+                [round(pie_uf * uf_clp), round(pie_uf)],
+                [round(capital_total * uf_clp), round(capital_total)],
+                [round(interes_total * uf_clp), round(interes_total)]
+            ],
+            hovertemplate=(
+                "<b>%{label}</b><br>"
+                "Monto: %{value:.2f} UF<br>"
+                "~$%{customdata[0]:,} CLP<extra></extra>"
+            )
         )])
         fig1.update_layout(
-            title="Distribución total del pago",
+            title="Distribución total del pago (Pie + Capital + Interés)",
             height=400,
             showlegend=True
         )
@@ -321,7 +343,8 @@ if modo == "Comprador para vivir":
                 "Interés Pagado UF": "{:.2f}",
                 "Saldo Restante UF": "{:.2f}"
             }), height=400)
-            st.download_button("📥 Descargar tabla CSV", data=df.to_csv(index=False), file_name="amortizacion.csv")
+            csv = df.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Descargar tabla CSV", data=csv, file_name="amortizacion.csv", mime='text/csv')
 
 # --- Otros modos (mantengo igual) ---
 elif modo == "Inversionista":
