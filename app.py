@@ -356,13 +356,13 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Espacio extra entre los mensajes
 st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
 
 # Alerta si el ingreso es menor al recomendado
 if ingreso_real > 0 and ingreso_real < sueldo_recomendado:
     st.warning(
-        f"Tu ingreso mensual declarado (${ingreso_real:,.0f} CLP) es menor al sueldo estimado recomendado (${sueldo_recomendado:,.0f} CLP) para este crédito. Considera ajustar el monto, aumentar el pie o extender el plazo."
+        f"Tu ingreso mensual declarado ({ingreso_real:,.0f} CLP) es menor al sueldo estimado recomendado ({sueldo_recomendado:,.0f} CLP) para este crédito. "
+        "Considera ajustar el monto, aumentar el pie o extender el plazo."
     )
     st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
 
@@ -371,12 +371,13 @@ st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
 
 if caprate <= 25 and pie_uf / precio_uf >= 0.2:
     st.success(
-        f"Dividendo estimado: ${dividendo_clp:,.0f} CLP ({caprate:.1f}% de {ingreso_label}).\n"
+        f"Dividendo estimado: {dividendo_clp:,.0f} CLP ({caprate:.1f}% de {ingreso_label}). "
         f"El pie cubre {pie_uf/precio_uf:.1%} del precio, lo que es saludable."
     )
 elif caprate > 25 and pie_uf / precio_uf < 0.2:
     st.warning(
-        f"Riesgo alto: El dividendo representa {caprate:.1f}% de {ingreso_label}. El pie inicial es menor al 20% recomendado. Considera aumentar el pie o reducir el monto."
+        f"Riesgo alto: El dividendo representa {caprate:.1f}% de {ingreso_label}. "
+        "El pie inicial es menor al 20% recomendado. Considera aumentar el pie o reducir el monto."
     )
 elif caprate > 25:
     st.warning(
@@ -387,6 +388,6 @@ else:
         f"El pie cubre solo {pie_uf/precio_uf:.1%} del precio total. Considera aumentarlo para reducir el crédito y las cuotas."
     )
     st.markdown(
-        f"<i>Sueldo estimado recomendado para este crédito: ${sueldo_recomendado:,.0f} CLP (calculado para que el dividendo no supere el 25% del ingreso).</i>",
+        f"<i>Sueldo estimado recomendado para este crédito: {sueldo_recomendado:,.0f} CLP (calculado para que el dividendo no supere el 25% del ingreso).</i>",
         unsafe_allow_html=True
     )
