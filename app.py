@@ -167,17 +167,22 @@ if modo == "Comprador para vivir":
         monto_total_uf = capital_total + interes_total
         monto_total_clp = monto_total_uf * uf_clp
 
+
+
+
         # --- Resultados ---
         st.subheader("📊 Resultados")
         c1, c2 = st.columns(2)
         with c1:
+            st.metric("Pie Inicial", f"{pie_uf:,.2f} UF", f"~${pie_uf * uf_clp:,.0f} CLP")
             st.metric("Monto total crédito pedido", f"{credito_uf:,.2f} UF", f"~${credito_clp:,.0f} CLP")
             st.metric("Dividendo mensual", f"{dividendo_uf:,.2f} UF", f"~${dividendo_clp:,.0f} CLP")
-            st.metric("Monto total a pagar (credito+interés)", f"{monto_total_uf:,.2f} UF", f"~${monto_total_clp:,.0f} CLP")
+            st.metric("Monto total a pagar (crédito + interés)", f"{monto_total_uf:,.2f} UF", f"~${monto_total_clp:,.0f} CLP")
         with c2:
             st.metric("Intereses totales", f"{interes_total:,.2f} UF", f"~${interes_total * uf_clp:,.0f} CLP")
-            st.metric("Sueldo requerido (25%)", f"~${sueldo_recomendado:,.0f} CLP")
             st.metric("Beneficios/Subsidios aplicados", f"{total_beneficios:.2f} UF")
+            st.metric("Sueldo requerido (25%)", f"~${sueldo_recomendado:,.0f} CLP")
+
 
         # --- Comparativa rápida de otros plazos ---
         plazos_comunes = [15, 20, 25, 30]
