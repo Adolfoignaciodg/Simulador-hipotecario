@@ -322,6 +322,16 @@ if st.button("🔄 Calcular Crédito"):
 
     if ingreso_real > 0:
         caprate = dividendo_clp / ingreso_real * 100
-        st.metric("📊 CAP
+        st.metric("📊 CAPRATE (Dividendo / Ingreso mensual)", f"{caprate:.2f} %")
+
+    if caprate > 30:
+        st.warning("⚠️ Tu CAPRATE supera el 30%, lo que puede ser riesgoso para obtener un crédito.")
+    elif caprate < 20:
+        st.success("✅ Tu CAPRATE está bajo el 25%, lo que es positivo para acceder al crédito.")
+    else:
+        st.info("ℹ️ Tu CAPRATE está en un rango aceptable, pero no ideal. Intenta que esté bajo el 25%.")
+    else:
+        st.info(f"💡 El dividendo mensual representa un 25% del ingreso mínimo recomendado (~${sueldo_recomendado:,.0f} CLP).")
+
 
 
