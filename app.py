@@ -83,7 +83,7 @@ with st.sidebar:
         tpm = 6.0
 
 # --- Inputs principales ---
-precio_uf = st.number_input("💰 Precio vivienda (UF)", value=4000.0, min_value=1.0)
+precio_uf = st.number_input("💰 Precio vivienda (UF)", value=3045, min_value=1.0)
 pie_uf = st.number_input("💵 Pie inicial (UF)", value=precio_uf * 0.2,
                          min_value=precio_uf * 0.1, max_value=precio_uf)
 plazo = st.slider("📅 Plazo (años)", 1, 30, 20)
