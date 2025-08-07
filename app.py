@@ -355,7 +355,7 @@ ingreso = ingreso_real if ingreso_real > 0 else sueldo_recomendado / 0.25  # si 
 
 caprate_usuario = dividendo_clp / ingreso * 100
 
-    if caprate_usuario <= 25 and pie_uf / precio_uf >= 0.2:
+if caprate_usuario <= 25 and pie_uf / precio_uf >= 0.2:
         st.success(f"✅ Viable: El dividendo estimado es {dividendo_clp:,.0f} CLP, que es un {caprate_usuario:.1f}% de tu ingreso mensual estimado. Además, el pie cubre un {pie_uf/precio_uf:.1%} del precio, lo que es saludable.")
     elif caprate_usuario > 25 and pie_uf / precio_uf < 0.2:
         st.warning(f"⚠️ Riesgo alto: El dividendo mensual representa un {caprate_usuario:.1f}% de tu ingreso estimado, y el pie inicial es menor al 20% recomendado. Considera aumentar el pie o reducir el monto del crédito.")
