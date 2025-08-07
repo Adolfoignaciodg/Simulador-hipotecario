@@ -267,12 +267,13 @@ fig2.update_layout(barmode='stack', title="📉 Evolución anual: Interés vs Ca
                    xaxis_title="Año", yaxis_title="UF", height=450)
 st.plotly_chart(fig2, use_container_width=True)
 
-# Diagnóstico Financiero Inteligente
+# Diagnóstico Financiero Inteligente (enriquecido)
 st.subheader("💡 Diagnóstico Financiero Inteligente")
 diagnosticos = []
 pie_pct = pie_uf / precio_uf if precio_uf > 0 else 0
 ratio_total = monto_total_uf / credito_uf if credito_uf > 0 else float('inf')
 
+# Tasa de interés
 if tasa_anual < 0.035:
     diagnosticos.append("🔵 Excelente tasa. Lograste condiciones muy competitivas.")
 elif tasa_anual <= 0.045:
@@ -282,6 +283,7 @@ elif tasa_anual <= 0.055:
 else:
     diagnosticos.append("🔴 Tasa alta. Evalúa cotizar con otros bancos o esperar mejores condiciones.")
 
+# Pie inicial
 if pie_pct >= 0.25:
     diagnosticos.append("🔵 Excelente pie inicial. Reduciste el monto y los intereses del crédito.")
 elif pie_pct >= 0.20:
@@ -291,11 +293,13 @@ elif pie_pct >= 0.15:
 else:
     diagnosticos.append("🔴 Pie muy bajo. Podrías enfrentar mayores intereses y restricciones.")
 
+# Plazo
 if plazo > 25:
     diagnosticos.append("🟡 Plazo largo. Cuotas más bajas, pero pagas más intereses.")
 elif plazo < 15:
     diagnosticos.append("🟢 Plazo corto. Ahorro en intereses, pero cuota más exigente.")
 
+# Relación total pagado / crédito solicitado
 if ratio_total > 2.0:
     diagnosticos.append("🔴 Estás pagando más del doble del crédito en total. Revisa la tasa y plazo.")
 elif ratio_total > 1.7:
@@ -303,13 +307,49 @@ elif ratio_total > 1.7:
 else:
     diagnosticos.append("🟢 Costo total razonable. Bien controlado.")
 
+# Relación dividendo - ingreso recomendado
 if sueldo_recomendado > 2_000_000:
     diagnosticos.append("🟡 El dividendo requiere un ingreso mensual alto. Evalúa reducir el monto del crédito o aumentar el pie.")
 elif sueldo_recomendado < 1_200_000:
     diagnosticos.append("🟢 Buena relación cuota / ingreso estimado. Deberías poder cumplir con holgura.")
 
-for d in diagnosticos:
-    st.markdown(f"- {d}")
+# Detalle de amortización inteligente
+if anio_salto:
+    diagnosticos.append(f"🟢 A partir del año {anio_salto} pagas más capital que interés en cada cuota. La deuda se reduce más rápido.")
+else:
+    diagnosticos.append("🟡 Durante todo el plazo, el pago de interés supera el capital. Considera reducir plazo o negociar mejor tasa.")
+
+primeros_5_anios_interes = sum(anios[a]["int"] for a in range(1, min(6, plazo+1)))
+diagnosticos.append(
+    f"En los primeros 5 años pagarás aproximadamente {primeros_5_anios_interes:.2f} UF (~${primeros_5_anios_interes*uf_clp:,.0f} CLP) solo en intereses."
+)
+
+if prepago and prepago_monto > 0:
+    saldo_prepago = tabla[prepago_ano*12-1][4] if prepago_ano*12-1 < len(tabla) else 0
+    diagnosticos.append(
+        f"Prepago de {prepago_monto:.2f} UF en año {prepago_ano}: reduce el saldo a {saldo_prepago:.2f} UF y disminuye intereses futuros."
+    )
+
+# Cap Rate análisis
+if cap_rate > 0:
+    if cap_rate < 4:
+        diagnosticos.append("⚠️ El CAP RATE es bajo para inversión. Evalúa opciones con mejor rentabilidad.")
+    elif cap_rate > 6:
+        diagnosticos.append("🟢 Buen CAP RATE. El arriendo cubre bien la cuota y el crédito.")
+
+# Beneficios
+if total_beneficios > 0:
+    diagnosticos.append(f"🟢 Has aplicado beneficios/subsidios por un total de {total_beneficios:.2f} UF. Esto reduce el monto solicitado y los intereses pagados.")
+
+st.markdown(
+    f"""
+    <div style="background-color:#F7F9F9; border-left: 6px solid #3498db; padding: 18px; margin: 22px 0; border-radius: 10px;">
+    <ul>
+    {''.join(f'<li>{d}</li>' for d in diagnosticos)}
+    </ul>
+    </div>
+    """, unsafe_allow_html=True
+)
 
 # Tabla de amortización
 df = pd.DataFrame(tabla, columns=["Mes", "Año", "Capital Pagado UF", "Interés Pagado UF", "Saldo Restante UF"])
@@ -323,6 +363,7 @@ with st.expander("📅 Ver tabla de amortización"):
 
 st.markdown("---")
 
+# --- Análisis de CAPRATE ---
 st.subheader("💼 Análisis de Capacidad de Repago (CAPRATE)")
 
 ingreso_real = st.number_input(
