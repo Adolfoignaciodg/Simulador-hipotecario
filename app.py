@@ -82,7 +82,24 @@ with st.sidebar:
         uf_clp = 36000
         tpm = 6.0
 
-# --- Función para manejar beneficios/subsidios en modo Comprador ---
+# --- Solo modo Vivienda ---
+precio_uf = st.number_input("💰 Precio vivienda (UF)", value=4000.0, min_value=1.0)
+pie_uf = st.number_input("💵 Pie inicial (UF)", value=precio_uf * 0.2,
+                         min_value=precio_uf * 0.1, max_value=precio_uf)
+plazo = st.slider("📅 Plazo (años)", 1, 30, 20)
+tasa_anual = st.number_input("📊 Tasa interés anual (%)", value=4.0, step=0.1) / 100
+inflacion = st.number_input("📈 Inflación esperada (%)", value=3.0, step=0.1) / 100
+seguro_mensual = st.number_input("🛡️ Seguro mensual (CLP)", value=10000, step=1000)
+
+# Prepago opcional
+prepago = st.checkbox("¿Agregar prepago parcial?")
+if prepago:
+    prepago_monto = st.number_input("💸 Monto prepago (UF)", value=0.0, min_value=0.0)
+    prepago_ano = st.number_input("📆 Año del prepago", 1, plazo, 5)
+else:
+    prepago_monto, prepago_ano = 0, 0
+
+# Beneficios/subsidios
 def manejar_beneficios():
     st.markdown("### 🎁 Agregar beneficios, subsidios o descuentos")
     if "beneficios" not in st.session_state:
@@ -106,35 +123,14 @@ def manejar_beneficios():
                     st.experimental_rerun()
     return total_beneficios
 
-# --- Simulación: Comprador para vivir ---
-col1, col2 = st.columns(2)
-with col1:
-    precio_uf = st.number_input("💰 Precio vivienda (UF)", value=4000.0, min_value=1.0)
-    pie_uf = st.number_input("💵 Pie inicial (UF)", value=precio_uf * 0.2,
-                             min_value=precio_uf * 0.1, max_value=precio_uf)
-    plazo = st.slider("📅 Plazo (años)", 1, 30, 20)
-with col2:
-    tasa_anual = st.number_input("📊 Tasa interés anual (%)", value=4.0, step=0.1) / 100
-    inflacion = st.number_input("📈 Inflación esperada (%)", value=3.0, step=0.1) / 100
-    seguro_mensual = st.number_input("🛡️ Seguro mensual (CLP)", value=10000, step=1000)
-
-prepago = st.checkbox("¿Agregar prepago parcial?")
-if prepago:
-    prepago_monto = st.number_input("💸 Monto prepago (UF)", value=0.0, min_value=0.0)
-    prepago_ano = st.number_input("📆 Año del prepago", 1, plazo, 5)
-else:
-    prepago_monto, prepago_ano = 0, 0
-
-# Aquí agregamos los beneficios/subsidios para "Comprador para vivir"
 total_beneficios = manejar_beneficios()
 
 if st.button("🔄 Calcular Crédito"):
-    # Crédito ajustado descontando beneficios/subsidios
     credito_uf = max(precio_uf - pie_uf - total_beneficios, 0)
-    credito_clp = credito_uf * uf_clp  # monto crédito en CLP
-    tasa_mensual = (1 + tasa_anual)**(1/12) - 1
+    credito_clp = credito_uf * uf_clp
+    tasa_mensual = (1 + tasa_anual) ** (1/12) - 1
     n_meses = plazo * 12
-    dividendo_uf = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual)**-n_meses)
+    dividendo_uf = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual) ** -n_meses)
     dividendo_clp = dividendo_uf * uf_clp + seguro_mensual
     sueldo_recomendado = dividendo_clp / 0.25
 
@@ -163,6 +159,13 @@ if st.button("🔄 Calcular Crédito"):
     monto_total_uf = capital_total + interes_total
     monto_total_clp = monto_total_uf * uf_clp
 
+    # CAP RATE: tasa de capitalización (solo como referencia para vivienda)
+    # Se calcula como arriendo anual neto dividido por el valor de la propiedad
+    # Para vivienda, el arriendo mensual estimado debe ser ingresado para calcular cap rate
+    arriendo_mensual = st.number_input("🏠 Arriendo mensual estimado (CLP)", value=0, step=10000)
+    arriendo_anual = arriendo_mensual * 12
+    cap_rate = (arriendo_anual / (precio_uf * uf_clp)) * 100 if precio_uf * uf_clp > 0 else 0
+
     # --- Resultados ---
     st.subheader("📊 Resultados")
     c1, c2 = st.columns(2)
@@ -175,6 +178,7 @@ if st.button("🔄 Calcular Crédito"):
         st.metric("Intereses totales", f"{interes_total:,.2f} UF", f"~${interes_total * uf_clp:,.0f} CLP")
         st.metric("Beneficios/Subsidios aplicados", f"{total_beneficios:.2f} UF")
         st.metric("Sueldo requerido (25%)", f"~${sueldo_recomendado:,.0f} CLP")
+        st.metric("🏡 Cap Rate estimado", f"{cap_rate:.2f} %")
 
     # --- Comparativa rápida de otros plazos ---
     plazos_comunes = [15, 20, 25, 30]
@@ -182,8 +186,8 @@ if st.button("🔄 Calcular Crédito"):
 
     for p in plazos_comunes:
         meses_alt = p * 12
-        tasa_mensual_alt = (1 + tasa_anual)**(1/12) - 1
-        dividendo_uf_alt = credito_uf * tasa_mensual_alt / (1 - (1 + tasa_mensual_alt)**-meses_alt)
+        tasa_mensual_alt = (1 + tasa_anual) ** (1/12) - 1
+        dividendo_uf_alt = credito_uf * tasa_mensual_alt / (1 - (1 + tasa_mensual_alt) ** -meses_alt)
         dividendo_clp_alt = dividendo_uf_alt * uf_clp + seguro_mensual
         renta_sugerida_alt = dividendo_clp_alt / 0.25
         total_pagar_uf = dividendo_uf_alt * meses_alt
@@ -324,3 +328,4 @@ if st.button("🔄 Calcular Crédito"):
             "Saldo Restante UF": "{:.2f}"
         }), height=400)
         st.download_button("📥 Descargar tabla CSV", data=df.to_csv(index=False), file_name="amortizacion.csv")
+
