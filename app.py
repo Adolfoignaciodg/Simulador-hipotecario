@@ -346,11 +346,28 @@ if ingreso_real > 0:
 # Evaluación de viabilidad (usa ingreso real o recomendado)
 st.markdown("### 🏠 Evaluación rápida de viabilidad")
 if caprate <= 25 and pie_uf / precio_uf >= 0.2:
-    st.success(f"✅ Viable: El dividendo estimado es {dividendo_clp:,.0f} CLP, que es un {caprate:.1f}% de tu ingreso mensual estimado. Además, el pie cubre un {pie_uf/precio_uf:.1%} del precio, lo que es saludable.")
+    st.success(
+        f"✅ Viable: El dividendo estimado es {dividendo_clp:,.0f} CLP, "
+        f"que es un {caprate:.1f}% de tu ingreso mensual estimado "
+        f"(**~${sueldo_recomendado:,.0f} CLP**, calculado automáticamente para que el dividendo no supere el 25% del ingreso). "
+        f"Además, el pie cubre un {pie_uf/precio_uf:.1%} del precio, lo que es saludable."
+    )
 elif caprate > 25 and pie_uf / precio_uf < 0.2:
-    st.warning(f"⚠️ Riesgo alto: El dividendo mensual representa un {caprate:.1f}% de tu ingreso estimado, y el pie inicial es menor al 20% recomendado. Considera aumentar el pie o reducir el monto del crédito.")
+    st.warning(
+        f"⚠️ Riesgo alto: El dividendo mensual representa un {caprate:.1f}% de tu ingreso mensual estimado "
+        f"(**~${sueldo_recomendado:,.0f} CLP**, calculado automáticamente). "
+        f"El pie inicial es menor al 20% recomendado. Considera aumentar el pie o reducir el monto del crédito."
+    )
 elif caprate > 25:
-    st.warning(f"⚠️ Cuidado: El dividendo mensual representa un {caprate:.1f}% de tu ingreso, lo que supera el 25% recomendado para evitar riesgo financiero.")
+    st.warning(
+        f"⚠️ Cuidado: El dividendo mensual representa un {caprate:.1f}% de tu ingreso mensual estimado "
+        f"(**~${sueldo_recomendado:,.0f} CLP**, calculado automáticamente), lo que supera el 25% recomendado para evitar riesgo financiero."
+    )
 else:
-    st.info(f"ℹ️ El pie cubre solo un {pie_uf/precio_uf:.1%} del precio total, considera aumentarlo para reducir el crédito y las cuotas.")
-    st.markdown(f"💡 El sueldo estimado requerido para este crédito es: **~${sueldo_recomendado:,.0f} CLP** (este valor se calcula automáticamente para que el dividendo mensual no supere el 25% del ingreso).")
+    st.info(
+        f"ℹ️ El pie cubre solo un {pie_uf/precio_uf:.1%} del precio total, considera aumentarlo para reducir el crédito y las cuotas."
+    )
+    st.markdown(
+        f"💡 El sueldo estimado requerido para este crédito es: **~${sueldo_recomendado:,.0f} CLP** "
+        f"(este valor se calcula automáticamente para que el dividendo mensual no supere el 25% del ingreso)."
+    )
