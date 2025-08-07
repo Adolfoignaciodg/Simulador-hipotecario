@@ -356,13 +356,13 @@ ingreso = ingreso_real if ingreso_real > 0 else sueldo_recomendado / 0.25  # si 
 caprate_usuario = dividendo_clp / ingreso * 100
 
     if caprate_usuario <= 25 and pie_uf / precio_uf >= 0.2:
-       st.success(f"✅ Viable: El dividendo estimado es {dividendo_clp:,.0f} CLP, que es un {caprate_usuario:.1f}% de tu ingreso mensual estimado. Además, el pie cubre un {pie_uf/precio_uf:.1%} del precio, lo que es saludable.")
+        st.success(f"✅ Viable: El dividendo estimado es {dividendo_clp:,.0f} CLP, que es un {caprate_usuario:.1f}% de tu ingreso mensual estimado. Además, el pie cubre un {pie_uf/precio_uf:.1%} del precio, lo que es saludable.")
     elif caprate_usuario > 25 and pie_uf / precio_uf < 0.2:
-       st.warning(f"⚠️ Riesgo alto: El dividendo mensual representa un {caprate_usuario:.1f}% de tu ingreso estimado, y el pie inicial es menor al 20% recomendado. Considera aumentar el pie o reducir el monto del crédito.")
+        st.warning(f"⚠️ Riesgo alto: El dividendo mensual representa un {caprate_usuario:.1f}% de tu ingreso estimado, y el pie inicial es menor al 20% recomendado. Considera aumentar el pie o reducir el monto del crédito.")
     elif caprate_usuario > 25:
-       st.warning(f"⚠️ Cuidado: El dividendo mensual representa un {caprate_usuario:.1f}% de tu ingreso, lo que supera el 25% recomendado para evitar riesgo financiero.")
+        st.warning(f"⚠️ Cuidado: El dividendo mensual representa un {caprate_usuario:.1f}% de tu ingreso, lo que supera el 25% recomendado para evitar riesgo financiero.")
     else:
-       st.info(f"ℹ️ El pie cubre solo un {pie_uf/precio_uf:.1%} del precio total, considera aumentarlo para reducir el crédito y las cuotas.")
+        st.info(f"ℹ️ El pie cubre solo un {pie_uf/precio_uf:.1%} del precio total, considera aumentarlo para reducir el crédito y las cuotas.")
 
     else:
-       st.info(f"💡 El dividendo mensual representa un 25% del ingreso mínimo recomendado (~${sueldo_recomendado:,.0f} CLP).")
+        st.info(f"💡 El dividendo mensual representa un 25% del ingreso mínimo recomendado (~${sueldo_recomendado:,.0f} CLP).")
