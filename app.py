@@ -148,7 +148,7 @@ if st.button("🔄 Calcular Crédito"):
         saldo -= capital
         interes_total += interes
         capital_total += capital
-        anio = mes // 12 + 1
+        anio = (mes - 1) // 12 + 1
         anios.setdefault(anio, {"cap": 0, "int": 0})
         anios[anio]["cap"] += capital
         anios[anio]["int"] += interes
@@ -264,7 +264,7 @@ if st.button("🔄 Calcular Crédito"):
     # Diagnóstico Financiero Inteligente
     st.subheader("💡 Diagnóstico Financiero Inteligente")
     diagnosticos = []
-    pie_pct = pie_uf / precio_uf
+    pie_pct = pie_uf / precio_uf if precio_uf > 0 else 0
     ratio_total = monto_total_uf / credito_uf if credito_uf > 0 else float('inf')
 
     if tasa_anual < 0.035:
@@ -321,15 +321,15 @@ if st.button("🔄 Calcular Crédito"):
     ingreso_real = st.number_input("Ingresa tu ingreso líquido mensual (CLP) para calcular CAPRATE (opcional)", min_value=0, step=10000, format="%d")
 
     if ingreso_real > 0:
-    caprate = dividendo_clp / ingreso_real * 100
-    st.metric("📊 CAPRATE (Dividendo / Ingreso mensual)", f"{caprate:.2f} %")
+        caprate = dividendo_clp / ingreso_real
+        if caprate <= 0.25:
+            st.success(f"👍 CAPRATE = {caprate:.2f}. La cuota es sostenible para tu ingreso.")
+        elif caprate <= 0.35:
+            st.warning(f"⚠️ CAPRATE = {caprate:.2f}. La cuota podría ser alta, pero todavía manejable.")
+        else:
+            st.error(f"❌ CAPRATE = {caprate:.2f}. La cuota podría ser muy alta para tu ingreso actual.")
 
-    if caprate > 30:
-        st.warning("⚠️ Tu CAPRATE supera el 30%, lo que puede ser riesgoso para obtener un crédito.")
-    elif caprate < 20:
-        st.success("✅ Tu CAPRATE está bajo el 25%, lo que es positivo para acceder al crédito.")
-    else:
-        st.info("ℹ️ Tu CAPRATE está en un rango aceptable, pero no ideal. Intenta que esté bajo el 25%.")
-    else:
-    st.info(f"💡 El dividendo mensual representa un 25% del ingreso mínimo recomendado (~${sueldo_recomendado:,.0f} CLP)."
+    st.markdown("### Fin del simulador. ¡Éxito en tu compra de vivienda! 🏡")
+
+
 
