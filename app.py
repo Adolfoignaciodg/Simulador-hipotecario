@@ -28,13 +28,68 @@ st.markdown("---")
 
 # --- Sidebar: Indicadores Económicos ---
 with st.sidebar:
-    st.markdown("### 📈 Indicadores Económicos en tiempo real")
+    st.markdown("""
+    <style>
+    .econ-card {
+        background: linear-gradient(90deg, #f2f6fc 60%, #d6eaf8 100%);
+        border-radius: 10px;
+        margin-bottom: 10px;
+        padding: 16px 12px;
+        box-shadow: 0 2px 8px #c5d9ea52;
+        display: flex;
+        align-items: center;
+    }
+    .econ-icon {
+        font-size: 32px;
+        margin-right: 12px;
+    }
+    .econ-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #21618c;
+        margin-bottom: 4px;
+    }
+    .econ-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #1b2631;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("### 📈 Indicadores Económicos")
     try:
         r = requests.get("https://mindicador.cl/api").json()
-        st.metric("UF", f"${r['uf']['valor']:,.2f} CLP")
-        st.metric("Dólar", f"${r['dolar']['valor']:,.2f} CLP")
-        st.metric("IPC", f"{r['ipc']['valor']:.2f}%")
-        st.metric("TPM", f"{r['tpm']['valor']:.2f}%")
+        st.markdown(f"""
+        <div class="econ-card">
+            <span class="econ-icon">💸</span>
+            <div>
+                <div class="econ-title">UF</div>
+                <div class="econ-value">${r['uf']['valor']:,.2f} CLP</div>
+            </div>
+        </div>
+        <div class="econ-card">
+            <span class="econ-icon">💵</span>
+            <div>
+                <div class="econ-title">Dólar</div>
+                <div class="econ-value">${r['dolar']['valor']:,.2f} CLP</div>
+            </div>
+        </div>
+        <div class="econ-card">
+            <span class="econ-icon">📊</span>
+            <div>
+                <div class="econ-title">IPC</div>
+                <div class="econ-value">{r['ipc']['valor']:.2f}%</div>
+            </div>
+        </div>
+        <div class="econ-card">
+            <span class="econ-icon">🏦</span>
+            <div>
+                <div class="econ-title">TPM</div>
+                <div class="econ-value">{r['tpm']['valor']:.2f}%</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         uf_clp = r['uf']['valor']
         tpm = r['tpm']['valor']
     except:
