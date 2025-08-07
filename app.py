@@ -178,6 +178,8 @@ if modo == "Comprador para vivir":
             st.metric("Intereses totales", f"{interes_total:,.2f} UF", f"~${interes_total * uf_clp:,.0f} CLP")
             st.metric("Sueldo requerido (25%)", f"~${sueldo_recomendado:,.0f} CLP")
             st.metric("Beneficios/Subsidios aplicados", f"{total_beneficios:.2f} UF")
+            st.metric("Pie Inicial", f"{pie_uf:,.2f} UF", f"~${pie_uf * uf_clp:,.0f} CLP")
+
 
         # --- Comparativa rápida de otros plazos ---
         plazos_comunes = [15, 20, 25, 30]
