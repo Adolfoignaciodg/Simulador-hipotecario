@@ -176,31 +176,8 @@ if modo == "Comprador para vivir":
             st.metric("Monto total a pagar (credito+interés)", f"{monto_total_uf:,.2f} UF", f"~${monto_total_clp:,.0f} CLP")
         with c2:
             st.metric("Intereses totales", f"{interes_total:,.2f} UF", f"~${interes_total * uf_clp:,.0f} CLP")
-            st.caption("📈 Es lo que pagarás extra al banco por prestarte el dinero.")
-            with st.expander("Ver detalle de intereses totales"):
-                st.markdown("""
-                **Este monto corresponde a todos los intereses que pagarás por el crédito hipotecario.**
-
-                🔹 No es parte del valor original de la propiedad.  
-                🔹 Se genera por el uso del crédito a lo largo de los años.  
-                🔹 Depende de la tasa de interés, el monto solicitado y el plazo.
-
-                👉 Mientras mayor sea el plazo o la tasa, **más altos serán los intereses**.
-                """)
-
-            st.metric("Beneficios/Subsidios aplicados", f"{total_beneficios:.2f} UF", f"~${total_beneficios * uf_clp:,.0f} CLP")
-            st.caption("🎁 Monto que cubre el Estado u otros beneficios. Reduce lo que pagas.")
-            with st.expander("Ver detalle de beneficios/subsidios"):
-                st.markdown("""
-                **Corresponde a ayudas o subsidios aplicados al costo de la propiedad.**
-
-                ✅ Reducen el monto total del crédito necesario.  
-                ✅ Se restan del precio de la vivienda antes de calcular cuánto debes pagar tú.
-
-                👀 No siempre se aplican automáticamente, y pueden depender de tu situación personal o programas vigentes.
-                """)
-
             st.metric("Sueldo requerido (25%)", f"~${sueldo_recomendado:,.0f} CLP")
+            st.metric("Beneficios/Subsidios aplicados", f"{total_beneficios:.2f} UF")
 
         # --- Comparativa rápida de otros plazos ---
         plazos_comunes = [15, 20, 25, 30]
@@ -334,5 +311,140 @@ if modo == "Comprador para vivir":
             diagnosticos.append("🟢 Costo total razonable. Bien controlado.")
 
         if sueldo_recomendado > 2_000_000:
-            diagnosticos.append("
+            diagnosticos.append("🟡 El dividendo requiere un ingreso mensual alto. Evalúa reducir el monto del crédito o aumentar el pie.")
+        elif sueldo_recomendado < 1_200_000:
+            diagnosticos.append("🟢 Buena relación cuota / ingreso estimado. Deberías poder cumplir con holgura.")
 
+        for d in diagnosticos:
+            st.markdown(f"- {d}")
+
+        # --- Tabla de amortización ---
+        df = pd.DataFrame(tabla, columns=["Mes", "Año", "Capital Pagado UF", "Interés Pagado UF", "Saldo Restante UF"])
+        with st.expander("📅 Ver tabla de amortización"):
+            st.dataframe(df.style.format({
+                "Capital Pagado UF": "{:.2f}",
+                "Interés Pagado UF": "{:.2f}",
+                "Saldo Restante UF": "{:.2f}"
+            }), height=400)
+            st.download_button("📥 Descargar tabla CSV", data=df.to_csv(index=False), file_name="amortizacion.csv")
+
+# --- Otros modos (mantengo igual) ---
+elif modo == "Inversionista":
+    st.subheader("🏢 Simulación Modo Inversionista")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        precio_uf = st.number_input("🏠 Precio propiedad (UF)", value=4000.0, min_value=1.0, key="precio_inv")
+        pie_uf = st.number_input("💵 Pie inicial (UF)", value=precio_uf * 0.2,
+                                 min_value=precio_uf * 0.1, max_value=precio_uf, key="pie_inv")
+        plazo = st.slider("🗓️ Plazo del crédito (años)", 1, 30, 20, key="plazo_inv")
+    with col2:
+        tasa_anual = st.number_input("📊 Tasa interés anual (%)", value=4.0, step=0.1, key="tasa_inv") / 100
+        arriendo_clp = st.number_input("🏷️ Arriendo mensual estimado (CLP)", value=0, step=10000, key="arriendo_inv")
+        seguro_mensual = st.number_input("🛡️ Seguro mensual (CLP)", value=10000, step=1000, key="seguro_inv")
+
+    # --- Beneficios/Subsidios ---
+    st.markdown("### 🎁 Agregar beneficios, subsidios o descuentos")
+
+    if "beneficios" not in st.session_state:
+        st.session_state.beneficios = []
+
+    with st.form("form_beneficios"):
+        monto_benef = st.number_input("Monto beneficio (UF)", min_value=0.0, step=0.1, format="%.2f")
+        desc_benef = st.text_input("Descripción del beneficio (opcional)")
+        agregar_benef = st.form_submit_button("➕ Agregar beneficio")
+
+    if agregar_benef and monto_benef > 0:
+        st.session_state.beneficios.append({"monto": monto_benef, "desc": desc_benef})
+
+    total_beneficios = sum(b["monto"] for b in st.session_state.beneficios)
+
+    if st.session_state.beneficios:
+        st.info(f"Total beneficios acumulados: **{total_beneficios:.2f} UF**")
+        for idx, b in enumerate(st.session_state.beneficios):
+            col1_b, col2_b = st.columns([0.8, 0.2])
+            with col1_b:
+                st.markdown(f"- {b['desc'] or 'Sin descripción'}: **{b['monto']:.2f} UF**")
+            with col2_b:
+                if st.button(f"❌ Eliminar", key=f"eliminar_benef_{idx}"):
+                    st.session_state.beneficios.pop(idx)
+                    st.experimental_rerun()
+
+    if st.button("📊 Simular inversión", key="boton_inv"):
+        credito_uf = max(precio_uf - pie_uf - total_beneficios, 0)
+        tasa_mensual = (1 + tasa_anual) ** (1/12) - 1
+        n_meses = plazo * 12
+        inversion_real_clp = pie_uf * uf_clp
+
+        saldo = credito_uf
+        tabla = []
+        flujo_libre = []
+        flujo_acumulado = []
+        recuperado = -inversion_real_clp
+        mes_recuperacion = None
+
+        for mes in range(1, n_meses + 1):
+            interes_mes = saldo * tasa_mensual
+            cuota_mensual_uf = credito_uf * tasa_mensual / (1 - (1 + tasa_mensual) ** -n_meses)
+            amortizacion_mes = cuota_mensual_uf - interes_mes
+            saldo -= amortizacion_mes
+            dividendo_mes_uf = interes_mes + amortizacion_mes
+            dividendo_clp = dividendo_mes_uf * uf_clp + seguro_mensual
+            flujo_mes = arriendo_clp - dividendo_clp
+            recuperado += flujo_mes
+            flujo_libre.append(flujo_mes)
+            flujo_acumulado.append(recuperado)
+
+            if mes_recuperacion is None and recuperado >= 0:
+                mes_recuperacion = mes
+
+            tabla.append({
+                "Mes": mes,
+                "Saldo (UF)": saldo,
+                "Interés (UF)": interes_mes,
+                "Amortización (UF)": amortizacion_mes,
+                "Dividendo (UF)": dividendo_mes_uf,
+                "Dividendo (CLP)": dividendo_clp,
+                "Flujo Libre (CLP)": flujo_mes,
+                "Flujo Acumulado (CLP)": recuperado
+            })
+
+        df_tabla = pd.DataFrame(tabla)
+
+        st.metric("Dividendo mensual promedio", f"~${df_tabla['Dividendo (CLP)'].mean():,.0f}")
+        st.metric("Flujo mensual promedio", f"~${np.mean(flujo_libre):,.0f}")
+        st.metric("Tu inversión real (pie sin subsidios)", f"${inversion_real_clp:,.0f}")
+
+        if mes_recuperacion:
+            anios = mes_recuperacion // 12
+            st.success(f"✅ Recuperas tu inversión inicial en {mes_recuperacion} meses (~{anios} años).")
+        else:
+            st.warning("⚠️ No alcanzas a recuperar el pie durante el plazo.")
+
+        # Gráfico flujo acumulado
+        st.subheader("📈 Gráfico: Flujo Acumulado")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=df_tabla["Mes"], y=df_tabla["Flujo Acumulado (CLP)"],
+            mode="lines+markers", name="Flujo acumulado", line=dict(color="green")))
+        fig.add_hline(y=0, line_dash="dash", line_color="gray",
+                      annotation_text="Punto de equilibrio", annotation_position="top left")
+        fig.update_layout(xaxis_title="Mes", yaxis_title="CLP", height=400)
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Tabla de amortización
+        st.subheader("📊 Tabla de Amortización")
+        st.dataframe(df_tabla[["Mes", "Saldo (UF)", "Interés (UF)", "Amortización (UF)", "Dividendo (CLP)", "Flujo Libre (CLP)"]].round(2), use_container_width=True)
+
+        # Rentabilidad y TIR
+        st.subheader("📦 Rentabilidad y TIR")
+        utilidad_total = sum(flujo_libre)
+        st.write(f"📈 Rentabilidad estimada total: **{(utilidad_total / inversion_real_clp) * 100:.2f}%**")
+        try:
+            tir_mensual = np.irr([-inversion_real_clp] + flujo_libre)
+            tir_anual = (1 + tir_mensual) ** 12 - 1
+            st.write(f"💹 TIR anual estimada: **{tir_anual * 100:.2f}%**")
+        except:
+            st.warning("No se pudo calcular la TIR (flujo no converge)")
+else:
+    st.info("🧠 Modo Inteligente en construcción. Pronto te ayudará a encontrar el mejor escenario según tus metas.")
