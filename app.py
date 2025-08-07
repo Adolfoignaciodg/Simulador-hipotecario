@@ -82,7 +82,7 @@ with st.sidebar:
         uf_clp = 36000
         tpm = 6.0
 
-# --- Solo modo Vivienda ---
+# --- Inputs principales ---
 precio_uf = st.number_input("💰 Precio vivienda (UF)", value=4000.0, min_value=1.0)
 pie_uf = st.number_input("💵 Pie inicial (UF)", value=precio_uf * 0.2,
                          min_value=precio_uf * 0.1, max_value=precio_uf)
@@ -159,9 +159,7 @@ if st.button("🔄 Calcular Crédito"):
     monto_total_uf = capital_total + interes_total
     monto_total_clp = monto_total_uf * uf_clp
 
-    # CAP RATE: tasa de capitalización (solo como referencia para vivienda)
-    # Se calcula como arriendo anual neto dividido por el valor de la propiedad
-    # Para vivienda, el arriendo mensual estimado debe ser ingresado para calcular cap rate
+    # CAP RATE: tasa de capitalización
     arriendo_mensual = st.number_input("🏠 Arriendo mensual estimado (CLP)", value=0, step=10000)
     arriendo_anual = arriendo_mensual * 12
     cap_rate = (arriendo_anual / (precio_uf * uf_clp)) * 100 if precio_uf * uf_clp > 0 else 0
@@ -220,7 +218,6 @@ if st.button("🔄 Calcular Crédito"):
         "Simulado"
     ])
 
-    # Función para resaltar fila con el plazo simulado
     def highlight_simulado(row):
         return ['background-color: #D0E9FF; font-weight: bold;' if row['Simulado'] else '' for _ in row]
 
@@ -230,7 +227,7 @@ if st.button("🔄 Calcular Crédito"):
     st.dataframe(df_styled, use_container_width=True)
     st.caption(f"*Comparativa estimada con tasa {tasa_anual*100:.2f}% y UF = ${uf_clp:,.2f} al {pd.Timestamp.now().strftime('%d-%m-%Y')}*")
 
-    # --- Gráfico circular elegante con Pie incluido ---
+    # --- Gráficos ---
     fig1 = go.Figure(data=[go.Pie(
         labels=["Pie Inicial", "Capital", "Interés"],
         values=[pie_uf, capital_total, interes_total],
@@ -239,14 +236,9 @@ if st.button("🔄 Calcular Crédito"):
         customdata=[round(pie_uf * uf_clp), round(capital_total * uf_clp), round(interes_total * uf_clp)],
         hovertemplate="<b>%{label}</b><br>Monto: %{value:.2f} UF<br>~$%{customdata:,} CLP<extra></extra>"
     )])
-    fig1.update_layout(
-        title="Distribución total del pago (incluyendo Pie Inicial)",
-        height=400,
-        showlegend=True
-    )
+    fig1.update_layout(title="Distribución total del pago (incluyendo Pie Inicial)", height=400, showlegend=True)
     st.plotly_chart(fig1, use_container_width=True)
 
-    # --- Barras anuales con tooltip en CLP ---
     years = list(anios.keys())
     fig2 = go.Figure()
     fig2.add_trace(go.Bar(
@@ -265,19 +257,13 @@ if st.button("🔄 Calcular Crédito"):
         customdata=[round(anios[y]["cap"] * uf_clp) for y in years],
         hovertemplate="<b>Año %{x}</b><br>Capital: %{y:.2f} UF<br>(~$%{customdata:,} CLP)<extra></extra>"
     ))
-    fig2.update_layout(
-        barmode='stack',
-        title="📉 Evolución anual: Interés vs Capital",
-        xaxis_title="Año",
-        yaxis_title="UF",
-        height=450
-    )
+    fig2.update_layout(barmode='stack', title="📉 Evolución anual: Interés vs Capital",
+                       xaxis_title="Año", yaxis_title="UF", height=450)
     st.plotly_chart(fig2, use_container_width=True)
 
-    # --- Diagnóstico Financiero Inteligente ---
+    # Diagnóstico Financiero Inteligente
     st.subheader("💡 Diagnóstico Financiero Inteligente")
     diagnosticos = []
-
     pie_pct = pie_uf / precio_uf
     ratio_total = monto_total_uf / credito_uf if credito_uf > 0 else float('inf')
 
@@ -319,7 +305,7 @@ if st.button("🔄 Calcular Crédito"):
     for d in diagnosticos:
         st.markdown(f"- {d}")
 
-    # --- Tabla de amortización ---
+    # Tabla de amortización
     df = pd.DataFrame(tabla, columns=["Mes", "Año", "Capital Pagado UF", "Interés Pagado UF", "Saldo Restante UF"])
     with st.expander("📅 Ver tabla de amortización"):
         st.dataframe(df.style.format({
@@ -328,4 +314,14 @@ if st.button("🔄 Calcular Crédito"):
             "Saldo Restante UF": "{:.2f}"
         }), height=400)
         st.download_button("📥 Descargar tabla CSV", data=df.to_csv(index=False), file_name="amortizacion.csv")
+
+    # --- Cálculo y visualización del CAPRATE real ---
+    st.markdown("---")
+    st.subheader("💼 Análisis de Capacidad de Repago (CAPRATE)")
+    ingreso_real = st.number_input("Ingresa tu ingreso líquido mensual (CLP) para calcular CAPRATE (opcional)", min_value=0, step=10000, format="%d")
+
+    if ingreso_real > 0:
+        caprate = dividendo_clp / ingreso_real * 100
+        st.metric("📊 CAP
+
 
