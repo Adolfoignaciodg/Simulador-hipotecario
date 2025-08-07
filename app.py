@@ -326,13 +326,13 @@ st.markdown("---")
 st.subheader("💼 Análisis de Capacidad de Repago (CAPRATE)")
 
 ingreso_real = st.number_input(
-    "Ingresa tu ingreso líquido mensual (CLP) para calcular CAPRATE (opcional)", min_value=0, step=10000, format="%d"
+    "Ingresa tu ingreso mensual líquido (CLP) para calcular CAPRATE (opcional)", min_value=0, step=10000, format="%d"
 )
 
 # Usamos el ingreso real si existe, si no, el recomendado (sueldo estimado)
 if ingreso_real > 0:
     ingreso_usado = ingreso_real
-    ingreso_label = "tu ingreso líquido mensual ingresado"
+    ingreso_label = "tu ingreso mensual líquido declarado"
 else:
     ingreso_usado = sueldo_recomendado
     ingreso_label = f"el sueldo estimado recomendado (**~${sueldo_recomendado:,.0f} CLP**)"
@@ -354,6 +354,12 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# Mensaje especial si el ingreso declarado es menor al recomendado
+if ingreso_real > 0 and ingreso_real < sueldo_recomendado:
+    st.warning(
+        f"⚠️ Tu ingreso mensual líquido declarado (**~${ingreso_real:,.0f} CLP**) es menor al sueldo estimado recomendado "
+        f"(**~${sueldo_recomendado:,.0f} CLP**) para este crédito. Evalúa ajustar el monto del crédito, aumentar el pie inicial o considerar plazos más largos para mejorar la viabilidad financiera."
+    )
 # Evaluación de viabilidad (usa ingreso real o recomendado)
 st.markdown("### 🏠 Evaluación rápida de viabilidad")
 if caprate <= 25 and pie_uf / precio_uf >= 0.2:
