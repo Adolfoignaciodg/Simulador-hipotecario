@@ -326,7 +326,8 @@ st.markdown("---")
 st.subheader("💼 Análisis de Capacidad de Repago (CAPRATE)")
 
 ingreso_real = st.number_input(
-    "Ingresa tu ingreso mensual líquido (CLP) para calcular CAPRATE (opcional)", min_value=0, step=10000, format="%d"
+    "Ingresa tu ingreso mensual líquido (CLP) para calcular CAPRATE (opcional)", 
+    min_value=0, step=10000, format="%d"
 )
 
 # Determina el ingreso a mostrar
@@ -341,9 +342,11 @@ caprate = dividendo_clp / ingreso_usado * 100
 
 st.metric("📊 CAPRATE (Dividendo / Ingreso mensual)", f"{caprate:.2f} %")
 
+# Espacio extra antes del bloque explicativo
+st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
 st.markdown(
     f"""
-    <div style="background-color:#f5f7fa; border-left: 4px solid #3498db; padding: 12px; margin: 12px 0 0 0; border-radius: 6px;">
+    <div style="background-color:#f5f7fa; border-left: 4px solid #3498db; padding: 14px; margin: 20px 0 20px 0; border-radius: 8px;">
     <b>¿Qué es el CAPRATE?</b><br>
     El CAPRATE indica qué porcentaje de {ingreso_label} representa el dividendo mensual del crédito hipotecario.<br>
     Un CAPRATE menor a 25% generalmente se considera saludable por los bancos.<br>
@@ -353,14 +356,19 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# Espacio extra entre los mensajes
+st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
+
 # Alerta si el ingreso es menor al recomendado
 if ingreso_real > 0 and ingreso_real < sueldo_recomendado:
     st.warning(
         f"Tu ingreso mensual declarado (${ingreso_real:,.0f} CLP) es menor al sueldo estimado recomendado (${sueldo_recomendado:,.0f} CLP) para este crédito. Considera ajustar el monto, aumentar el pie o extender el plazo."
     )
+    st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
 
-# Evaluación de viabilidad
 st.markdown("### 🏠 Evaluación rápida de viabilidad")
+st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
+
 if caprate <= 25 and pie_uf / precio_uf >= 0.2:
     st.success(
         f"Dividendo estimado: ${dividendo_clp:,.0f} CLP ({caprate:.1f}% de {ingreso_label}).\n"
