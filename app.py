@@ -4,71 +4,31 @@ import pandas as pd
 import requests
 import plotly.graph_objects as go
 
-# --- Estilo Premium ---
+# --- Premium UX & Branding ---
 st.set_page_config(page_title="Simulador Hipotecario 🏡", layout="wide")
 st.markdown("""
 <style>
-h1 {
-    font-family: 'Segoe UI', sans-serif;
-    color: #2E86C1;
-}
-[data-testid="metric-container"] {
-    background-color: transparent !important;
-    padding: 12px 0px;
-    border: none !important;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
-    color: #2C3E50 !important;
-    font-weight: 600 !important;
-    font-size: 18px !important;
-}
-[data-testid="metric-value"] {
-    font-weight: 700 !important;
-    font-size: 24px !important;
-    color: #1B2631 !important;
-}
-[data-testid="metric-subheader"] {
-    font-weight: 500 !important;
-    font-size: 14px !important;
-    color: #566573 !important;
-}
-.stButton>button {
-    background-color: #2E86C1;
-    color: white;
-    border-radius: 10px;
-    padding: 10px 16px;
-    font-weight: bold;
-    border: none;
-}
-.stButton>button:hover {
-    background-color: #1A5276;
-}
-input[type="number"], .stSlider, select {
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    padding: 5px;
-}
-.css-1d391kg, .css-1cypcdb {
-    background-color: #ecf2f9;
-}
-.st-expander {
-    background-color: #f1f6fb;
-    border: 1px solid #cbdce8;
-    border-radius: 10px;
-}
-.reportview-container .markdown-text-container {
-    font-size: 16px;
-    line-height: 1.6;
-}
+h1 { font-family: 'Segoe UI', sans-serif; color: #2E86C1; }
+[data-testid="metric-container"] { background-color: transparent !important; padding: 12px 0px; border: none !important; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif !important; color: #2C3E50 !important; font-weight: 600 !important; font-size: 18px !important; }
+[data-testid="metric-value"] { font-weight: 700 !important; font-size: 24px !important; color: #1B2631 !important; }
+[data-testid="metric-subheader"] { font-weight: 500 !important; font-size: 14px !important; color: #566573 !important; }
+.stButton>button { background-color: #2E86C1; color: white; border-radius: 10px; padding: 10px 16px; font-weight: bold; border: none; }
+.stButton>button:hover { background-color: #1A5276; }
+input[type="number"], .stSlider, select { border-radius: 8px; border: 1px solid #ccc; padding: 5px; }
+.css-1d391kg, .css-1cypcdb { background-color: #ecf2f9; }
+.st-expander { background-color: #f1f6fb; border: 1px solid #cbdce8; border-radius: 10px; }
+.reportview-container .markdown-text-container { font-size: 16px; line-height: 1.6; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Título principal ---
-st.markdown("<h1 style='text-align: center;'>Simulador Hipotecario<span style='font-size: 20px;'> _ </span></h1>", unsafe_allow_html=True)
+# --- Título principal, branding y ayuda ---
+st.markdown("<h1 style='text-align: center;'>Simulador Hipotecario</h1>", unsafe_allow_html=True)
+st.caption("Simula, compara y recibe diagnóstico inteligente. La app hipotecaria más completa del mercado.")
 st.markdown("---")
 
 # --- Sidebar: Indicadores Económicos ---
 with st.sidebar:
-    st.markdown("### 📈 Indicadores Económicos")
+    st.markdown("### 📈 Indicadores Económicos en tiempo real")
     try:
         r = requests.get("https://mindicador.cl/api").json()
         st.metric("UF", f"${r['uf']['valor']:,.2f} CLP")
@@ -82,14 +42,24 @@ with st.sidebar:
         uf_clp = 36000
         tpm = 6.0
 
+# --- Inputs principales y perfil avanzado ---
+with st.expander("🧑 Datos de perfil para diagnóstico personalizado", expanded=False):
+    col_p1, col_p2 = st.columns(2)
+    with col_p1:
+        edad = st.number_input("Edad (años)", min_value=18, max_value=80, value=30)
+        tipo_trabajo = st.selectbox("Tipo de trabajo", ["Dependiente", "Independiente", "Empresario", "Otro"])
+    with col_p2:
+        objetivo = st.selectbox("Objetivo del crédito", ["Primera vivienda", "Segunda vivienda", "Inversión", "Otro"])
+        tipo_inmueble = st.selectbox("Tipo de inmueble", ["Departamento", "Casa", "Parcela", "Comercial", "Otro"])
+
 # --- Inputs principales ---
-precio_uf = st.number_input("💰 Precio vivienda (UF)", value=3045.0, min_value=1.0)
+precio_uf = st.number_input("💰 Precio vivienda (UF)", value=3045.0, min_value=1.0, help="Valor de compra en UF")
 pie_uf = st.number_input("💵 Pie inicial (UF)", value=precio_uf * 0.2,
-                         min_value=precio_uf * 0.1, max_value=precio_uf)
-plazo = st.slider("📅 Plazo (años)", 1, 30, 20)
-tasa_anual = st.number_input("📊 Tasa interés anual (%)", value=3.7, step=0.1) / 100
-inflacion = st.number_input("📈 Inflación esperada (%)", value=3.0, step=0.1) / 100
-seguro_mensual = st.number_input("🛡️ Seguro mensual (CLP)", value=10000, step=1000)
+                         min_value=precio_uf * 0.1, max_value=precio_uf, help="Monto de entrada en UF (mínimo 10%)")
+plazo = st.slider("📅 Plazo (años)", 1, 30, 20, help="Plazo total del crédito")
+tasa_anual = st.number_input("📊 Tasa interés anual (%)", value=3.7, step=0.1, help="Tasa referencial anual") / 100
+inflacion = st.number_input("📈 Inflación esperada (%)", value=3.0, step=0.1, help="Estimación anual") / 100
+seguro_mensual = st.number_input("🛡️ Seguro mensual (CLP)", value=10000, step=1000, help="Seguro de desgravamen y/o incendio")
 
 # Prepago opcional
 prepago = st.checkbox("¿Agregar prepago parcial?")
@@ -125,7 +95,7 @@ def manejar_beneficios():
 
 total_beneficios = manejar_beneficios()
 
-# --- Cálculos automáticos sin botón ---
+# --- Cálculos automáticos ---
 credito_uf = max(precio_uf - pie_uf - total_beneficios, 0)
 credito_clp = credito_uf * uf_clp
 tasa_mensual = (1 + tasa_anual) ** (1/12) - 1
@@ -184,7 +154,6 @@ with c2:
 # --- Comparativa rápida de otros plazos ---
 plazos_comunes = [15, 20, 25, 30]
 comparacion = []
-
 for p in plazos_comunes:
     meses_alt = p * 12
     tasa_mensual_alt = (1 + tasa_anual) ** (1/12) - 1
@@ -198,10 +167,8 @@ for p in plazos_comunes:
     total_pagar_clp = dividendo_clp_alt * meses_alt
     interes_total_uf = total_pagar_uf - credito_uf
     interes_total_clp = interes_total_uf * uf_clp
-
     monto_total_con_pie_uf = pie_uf + total_pagar_uf
     monto_total_con_pie_clp = monto_total_con_pie_uf * uf_clp
-
     comparacion.append([
         f"{p} años",
         f"{tasa_anual*100:.2f} %",
@@ -212,7 +179,6 @@ for p in plazos_comunes:
         f"{monto_total_con_pie_uf:,.2f} UF ~ ${monto_total_con_pie_clp:,.0f}",
         "✔️ Simulado" if p == plazo else ""
     ])
-
 df_comp = pd.DataFrame(comparacion, columns=[
     "↑ Plazo",
     "Tasa (%)",
@@ -223,17 +189,14 @@ df_comp = pd.DataFrame(comparacion, columns=[
     "Monto total: credito+interés+Pie (UF ~ CLP)",
     "Simulado"
 ])
-
 def highlight_simulado(row):
     return ['background-color: #D0E9FF; font-weight: bold;' if row['Simulado'] else '' for _ in row]
-
 df_styled = df_comp.style.apply(highlight_simulado, axis=1)
-
 st.markdown("### 📊 Comparativa rápida: distintos plazos con misma tasa")
 st.dataframe(df_styled, use_container_width=True)
 st.caption(f"*Comparativa estimada con tasa {tasa_anual*100:.2f}% y UF = ${uf_clp:,.2f} al {pd.Timestamp.now().strftime('%d-%m-%Y')}*")
 
-# --- Gráficos ---
+# --- Gráficos avanzados ---
 fig1 = go.Figure(data=[go.Pie(
     labels=["Pie Inicial", "Capital", "Interés"],
     values=[pie_uf, capital_total, interes_total],
@@ -247,6 +210,14 @@ st.plotly_chart(fig1, use_container_width=True)
 
 years = list(anios.keys())
 fig2 = go.Figure()
+fig2.add_trace(go.Scatter(
+    x=years,
+    y=[anios[y]["cap"]+anios[y]["int"] for y in years],
+    name="Cuota Total (UF)",
+    mode="lines+markers",
+    line=dict(color="royalblue"),
+    hovertemplate="Año %{x}<br>Cuota Total: %{y:.2f} UF"
+))
 fig2.add_trace(go.Bar(
     x=years,
     y=[anios[y]["int"] for y in years],
@@ -263,11 +234,10 @@ fig2.add_trace(go.Bar(
     customdata=[round(anios[y]["cap"] * uf_clp) for y in years],
     hovertemplate="<b>Año %{x}</b><br>Capital: %{y:.2f} UF<br>(~$%{customdata:,} CLP)<extra></extra>"
 ))
-fig2.update_layout(barmode='stack', title="📉 Evolución anual: Interés vs Capital",
-                   xaxis_title="Año", yaxis_title="UF", height=450)
+fig2.update_layout(barmode='stack', title="📉 Evolución anual: Interés vs Capital", xaxis_title="Año", yaxis_title="UF", height=450)
 st.plotly_chart(fig2, use_container_width=True)
 
-# Diagnóstico Financiero Inteligente (enriquecido)
+# --- Diagnóstico Financiero Inteligente (ultra enriquecido) ---
 st.subheader("💡 Diagnóstico Financiero Inteligente")
 diagnosticos = []
 pie_pct = pie_uf / precio_uf if precio_uf > 0 else 0
@@ -341,6 +311,14 @@ if cap_rate > 0:
 if total_beneficios > 0:
     diagnosticos.append(f"🟢 Has aplicado beneficios/subsidios por un total de {total_beneficios:.2f} UF. Esto reduce el monto solicitado y los intereses pagados.")
 
+# Diagnóstico personalizado por perfil
+if objetivo == "Inversión" and cap_rate < 5:
+    diagnosticos.append("⚠️ Como tu objetivo es inversión, considera buscar propiedades con mejor rentabilidad (Cap Rate > 5%).")
+if edad < 25 and plazo > 25:
+    diagnosticos.append("🟢 Al ser joven, puedes optar por plazos largos, pero revisa el costo total.")
+if tipo_trabajo == "Independiente" and pie_pct < 0.20:
+    diagnosticos.append("🟡 Si eres independiente, los bancos suelen exigir mayor pie inicial.")
+
 st.markdown(
     f"""
     <div style="background-color:#F7F9F9; border-left: 6px solid #3498db; padding: 18px; margin: 22px 0; border-radius: 10px;">
@@ -351,7 +329,7 @@ st.markdown(
     """, unsafe_allow_html=True
 )
 
-# Tabla de amortización
+# --- Tabla de amortización y exportación ---
 df = pd.DataFrame(tabla, columns=["Mes", "Año", "Capital Pagado UF", "Interés Pagado UF", "Saldo Restante UF"])
 with st.expander("📅 Ver tabla de amortización"):
     st.dataframe(df.style.format({
@@ -360,6 +338,7 @@ with st.expander("📅 Ver tabla de amortización"):
         "Saldo Restante UF": "{:.2f}"
     }), height=400)
     st.download_button("📥 Descargar tabla CSV", data=df.to_csv(index=False), file_name="amortizacion.csv")
+    # Aquí podrías agregar exportación a PDF usando pdfkit o reportlab.
 
 st.markdown("---")
 
@@ -383,7 +362,6 @@ caprate = dividendo_clp / ingreso_usado * 100
 
 st.metric("📊 CAPRATE (Dividendo / Ingreso mensual)", f"{caprate:.2f} %")
 
-# Espacio extra antes del bloque explicativo
 st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
 st.markdown(
     f"""
@@ -399,7 +377,6 @@ st.markdown(
 
 st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
 
-# Alerta si el ingreso es menor al recomendado
 if ingreso_real > 0 and ingreso_real < sueldo_recomendado:
     st.warning(
         f"Tu ingreso mensual declarado ({ingreso_real:,.0f} CLP) es menor al sueldo estimado recomendado ({sueldo_recomendado:,.0f} CLP) para este crédito. "
@@ -432,3 +409,18 @@ else:
         f"<i>Sueldo estimado recomendado para este crédito: {sueldo_recomendado:,.0f} CLP (calculado para que el dividendo no supere el 25% del ingreso).</i>",
         unsafe_allow_html=True
     )
+
+# --- FAQ y ayuda dinámica ---
+with st.expander("❓ Preguntas frecuentes y ayuda"):
+    st.markdown("""
+    - **¿Qué es el CAPRATE?** Proporción entre dividendo y tu ingreso mensual. Idealmente menor a 25%.
+    - **¿Qué significa el pie inicial?** Es el monto que aportas de entrada. Más pie = menos crédito y menos intereses.
+    - **¿Qué es el Cap Rate?** Rentabilidad estimada de arriendo sobre el valor del inmueble.
+    - **¿Puedo simular prepago?** Sí, agrega el monto y año para ver el impacto en saldo y en intereses pagados.
+    - **¿Puedo descargar la tabla?** Sí, puedes exportar en CSV y próximamente en PDF.
+    """)
+    st.info("¿Tienes dudas? ¡Escríbenos y te ayudamos!")
+
+# --- Branding final y contacto ---
+st.markdown("---")
+st.markdown("<div style='text-align:center;'>Desarrollado por Adolfoignaciodg · Simulador premium para el mercado chileno 🇨🇱</div>", unsafe_allow_html=True)
