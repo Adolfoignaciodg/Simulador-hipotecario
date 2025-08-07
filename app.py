@@ -110,7 +110,7 @@ def manejar_beneficios():
     return total_beneficios
 
 # --- Simulación: Comprador para vivir ---
-if modo == "Comprador para vivir":
+if modo == "Vivienda":
     col1, col2 = st.columns(2)
     with col1:
         precio_uf = st.number_input("💰 Precio vivienda (UF)", value=4000.0, min_value=1.0)
