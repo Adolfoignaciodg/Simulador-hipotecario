@@ -381,13 +381,13 @@ elif caprate > 25:
     st.warning(
         f"⚠️ Cuidado: El dividendo mensual representa un {caprate:.1f}% de {ingreso_label} "
         f"(**~${ingreso_usado:,.0f} CLP**), lo que supera el 25% recomendado para evitar riesgo financiero. "
-        f"El sueldo estimado recomendado para este crédito es **~${sueldo_recomendado:,.0f} CLP**."
+        f"El sueldo estimado recomendado para este crédito es ~${sueldo_recomendado:,.0f} CLP."
     )
 else:
     st.info(
         f"ℹ️ El pie cubre solo un {pie_uf/precio_uf:.1%} del precio total, considera aumentarlo para reducir el crédito y las cuotas."
     )
     st.markdown(
-        f"💡 El sueldo estimado recomendado para este crédito es: **~${sueldo_recomendado:,.0f} CLP** "
+        f"💡 El sueldo estimado recomendado para este crédito es: **~${sueldo_recomendado:,.0f} CLP"
         f"(este valor se calcula automáticamente para que el dividendo mensual no supere el 25% del ingreso)."
     )
