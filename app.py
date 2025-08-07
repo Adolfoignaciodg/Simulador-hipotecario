@@ -63,7 +63,7 @@ input[type="number"], .stSlider, select {
 """, unsafe_allow_html=True)
 
 # --- Título principal ---
-st.markdown("<h1 style='text-align: center;'>Simulador Hipotecario<span style='font-size: 20px;'>🏡 </span></h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>Simulador Hipotecario<span style='font-size: 20px;'> 🏡 </span></h1>", unsafe_allow_html=True)
 st.markdown("---")
 
 # --- Sidebar: Indicadores Económicos ---
