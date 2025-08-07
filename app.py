@@ -87,7 +87,7 @@ precio_uf = st.number_input("💰 Precio vivienda (UF)", value=3045.0, min_value
 pie_uf = st.number_input("💵 Pie inicial (UF)", value=precio_uf * 0.2,
                          min_value=precio_uf * 0.1, max_value=precio_uf)
 plazo = st.slider("📅 Plazo (años)", 1, 30, 20)
-tasa_anual = st.number_input("📊 Tasa interés anual (%)", value=4.0, step=0.1) / 100
+tasa_anual = st.number_input("📊 Tasa interés anual (%)", value=3.7, step=0.1) / 100
 inflacion = st.number_input("📈 Inflación esperada (%)", value=3.0, step=0.1) / 100
 seguro_mensual = st.number_input("🛡️ Seguro mensual (CLP)", value=10000, step=1000)
 
