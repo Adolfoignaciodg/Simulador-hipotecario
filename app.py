@@ -5,6 +5,7 @@ import requests
 import plotly.graph_objects as go
 from fpdf import FPDF
 import io
+from datetime import datetime
 
 # --- Estilo Premium ---
 st.set_page_config(page_title="Simulador Hipotecario 🏡", layout="wide")
@@ -330,64 +331,54 @@ ingreso_real = st.number_input("Ingresa tu ingreso líquido mensual (CLP) para c
 
 if ingreso_real > 0:
     caprate = dividendo_clp / ingreso_real * 100
-    st.metric("📊 CAPRATE (Dividendo / Ingreso mensual)", f"{caprate:.2f} %")
-
+    st.metric("📊 CAPRATE (Dividendo / Ingreso mensual) %", f"{caprate:.2f} %")
     if caprate > 30:
-        st.warning("⚠️ Tu CAPRATE supera el 30%, lo que puede ser riesgoso para obtener un crédito.")
-    elif caprate < 20:
-        st.success("✅ Tu CAPRATE está bajo el 25%, lo que es positivo para acceder al crédito.")
+        st.warning("⚠️ El dividendo representa más del 30% de tu ingreso mensual. Podría ser un riesgo financiero.")
     else:
-        st.info("ℹ️ Tu CAPRATE está en un rango aceptable, pero no ideal. Intenta que esté bajo el 25%.")
-else:
-    st.info(f"💡 El dividendo mensual representa un 25% del ingreso mínimo recomendado (~${sueldo_recomendado:,.0f} CLP).")
+        st.success("✅ Dividendo dentro de capacidad recomendada.")
 
-# --- Función para crear PDF resumen ---
+# --- PDF resumen (fpdf2, UTF-8) ---
 def crear_resumen_pdf():
     pdf = FPDF()
     pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(0, 10, "Resumen Simulador Hipotecario", 0, 1, 'C')
     pdf.ln(10)
-    
+
     pdf.set_font("Arial", '', 12)
-    pdf.cell(0, 8, f"Precio vivienda: {precio_uf:.2f} UF (~${precio_uf * uf_clp:,.0f} CLP)", 0, 1)
-    pdf.cell(0, 8, f"Pie inicial: {pie_uf:.2f} UF (~${pie_uf * uf_clp:,.0f} CLP)", 0, 1)
-    pdf.cell(0, 8, f"Plazo: {plazo} años", 0, 1)
-    pdf.cell(0, 8, f"Tasa interés anual: {tasa_anual*100:.2f} %", 0, 1)
-    pdf.cell(0, 8, f"Seguro mensual: ${seguro_mensual:,} CLP", 0, 1)
-    pdf.cell(0, 8, f"Beneficios/Subsidios aplicados: {total_beneficios:.2f} UF", 0, 1)
-    pdf.cell(0, 8, f"Monto total crédito pedido: {credito_uf:.2f} UF (~${credito_clp:,.0f} CLP)", 0, 1)
-    pdf.cell(0, 8, f"Dividendo mensual estimado: {dividendo_uf:.2f} UF (~${dividendo_clp:,.0f} CLP)", 0, 1)
-    pdf.cell(0, 8, f"Monto total a pagar (crédito + interés): {monto_total_uf:.2f} UF (~${monto_total_clp:,.0f} CLP)", 0, 1)
-    pdf.cell(0, 8, f"Intereses totales: {interes_total:.2f} UF (~${interes_total * uf_clp:,.0f} CLP)", 0, 1)
-    pdf.cell(0, 8, f"Sueldo recomendado (25% ingreso): ~${sueldo_recomendado:,.0f} CLP", 0, 1)
-    pdf.cell(0, 8, f"Cap Rate estimado: {cap_rate:.2f} %", 0, 1)
-    
-    pdf.ln(10)
-    pdf.set_font("Arial", 'B', 14)
-    pdf.cell(0, 8, "Diagnóstico Financiero", 0, 1)
-    pdf.set_font("Arial", '', 12)
+    lines = [
+        f"Precio vivienda: {precio_uf:.2f} UF (~${precio_uf * uf_clp:,.0f} CLP)",
+        f"Pie inicial: {pie_uf:.2f} UF (~${pie_uf * uf_clp:,.0f} CLP)",
+        f"Plazo: {plazo} años",
+        f"Tasa interés anual: {tasa_anual*100:.2f} %",
+        f"Seguro mensual: ${seguro_mensual:,} CLP",
+        f"Beneficios/Subsidios aplicados: {total_beneficios:.2f} UF",
+        f"Monto total crédito pedido: {credito_uf:.2f} UF (~${credito_clp:,.0f} CLP)",
+        f"Dividendo mensual estimado: {dividendo_uf:.2f} UF (~${dividendo_clp:,.0f} CLP)",
+        f"Monto total a pagar (crédito + interés): {monto_total_uf:.2f} UF (~${monto_total_clp:,.0f} CLP)",
+        f"Intereses totales: {interes_total:.2f} UF (~${interes_total * uf_clp:,.0f} CLP)",
+        f"Sueldo recomendado (25% ingreso): ~${sueldo_recomendado:,.0f} CLP",
+        f"Cap Rate estimado: {cap_rate:.2f} %",
+        "",
+        "Diagnóstico Financiero:"
+    ]
+    for line in lines:
+        pdf.cell(0, 8, line, 0, 1)
+
     for d in diagnosticos:
         pdf.multi_cell(0, 7, f"- {d}")
-    
-    pdf.ln(10)
-    pdf.set_font("Arial", 'B', 14)
-    pdf.cell(0, 8, "Fecha de simulación", 0, 1)
-    pdf.set_font("Arial", '', 12)
-    from datetime import datetime
-    pdf.cell(0, 8, datetime.now().strftime("%d-%m-%Y %H:%M:%S"), 0, 1)
 
-    # Guardar PDF en buffer para Streamlit
+    pdf.ln(10)
+    pdf.cell(0, 8, "Fecha de simulación: " + datetime.now().strftime("%d-%m-%Y %H:%M:%S"), 0, 1)
+
     buffer = io.BytesIO()
     pdf.output(buffer)
+    buffer.seek(0)
     return buffer.getvalue()
 
-# Botón para descargar PDF
-pdf_bytes = crear_resumen_pdf()
-st.download_button(
-    label="📄 Descargar resumen PDF",
-    data=pdf_bytes,
-    file_name="resumen_simulador_hipotecario.pdf",
-    mime="application/pdf"
-)
+if st.button("📄 Descargar resumen PDF"):
+    pdf_bytes = crear_resumen_pdf()
+    st.download_button(label="Descargar PDF", data=pdf_bytes, file_name="resumen_hipotecario.pdf", mime="application/pdf")
 
