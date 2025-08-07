@@ -336,5 +336,14 @@ if ingreso_real > 0:
         st.success("✅ Tu CAPRATE está bajo el 25%, lo que es positivo para acceder al crédito.")
     else:
         st.info("ℹ️ Tu CAPRATE está en un rango aceptable, pero no ideal. Intenta que esté bajo el 25%.")
+
+    st.markdown("""
+    <div style="background-color:#f0f4f8; border-left: 4px solid #2E86C1; padding: 10px; margin-top: 10px; border-radius: 5px;">
+    <strong>¿Qué es este CAPRATE?</strong><br>
+    Es el porcentaje que representa el dividendo mensual del crédito hipotecario respecto a tu ingreso líquido mensual.<br>
+    Sirve para medir qué tanto afecta el crédito a tu capacidad de pago mensual.<br>
+    Un CAPRATE menor al 25% es considerado saludable por la mayoría de las entidades financieras.
+    </div>
+    """, unsafe_allow_html=True)
 else:
     st.info(f"💡 El dividendo mensual representa un 25% del ingreso mínimo recomendado (~${sueldo_recomendado:,.0f} CLP).")
