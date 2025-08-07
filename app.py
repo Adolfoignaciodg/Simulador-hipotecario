@@ -324,24 +324,35 @@ with st.expander("📅 Ver tabla de amortización"):
 # --- Cálculo y visualización del CAPRATE real ---
 st.markdown("---")
 st.subheader("💼 Análisis de Capacidad de Repago (CAPRATE)")
-ingreso_real = st.number_input("Ingresa tu ingreso líquido mensual (CLP) para calcular CAPRATE (opcional)", min_value=0, step=10000, format="%d")
 
-# Usamos el ingreso real si existe, si no, el recomendado
-ingreso = ingreso_real if ingreso_real > 0 else sueldo_recomendado / 0.25
+ingreso_real = st.number_input(
+    "Ingresa tu ingreso líquido mensual (CLP) para calcular CAPRATE (opcional)", min_value=0, step=10000, format="%d"
+)
 
-caprate = dividendo_clp / ingreso * 100
+# Usamos el ingreso real si existe, si no, el recomendado (sueldo estimado)
+if ingreso_real > 0:
+    ingreso_usado = ingreso_real
+    ingreso_label = "tu ingreso líquido mensual ingresado"
+else:
+    ingreso_usado = sueldo_recomendado
+    ingreso_label = f"el sueldo estimado recomendado (**~${sueldo_recomendado:,.0f} CLP**)"
+
+caprate = dividendo_clp / ingreso_usado * 100
 
 st.metric("📊 CAPRATE (Dividendo / Ingreso mensual)", f"{caprate:.2f} %")
 
-if ingreso_real > 0:
-    st.markdown("""
+st.markdown(
+    f"""
     <div style="background-color:#f0f4f8; border-left: 4px solid #2E86C1; padding: 10px; margin-top: 10px; border-radius: 5px;">
     <strong>¿Qué es este CAPRATE?</strong><br>
-    Es el porcentaje que representa el dividendo mensual del crédito hipotecario respecto a tu ingreso líquido mensual.<br>
+    Es el porcentaje que representa el dividendo mensual del crédito hipotecario respecto a <b>{ingreso_label}</b>.<br>
     Sirve para medir qué tanto afecta el crédito a tu capacidad de pago mensual.<br>
-    Un CAPRATE menor al 25% es considerado saludable por la mayoría de las entidades financieras.
+    Un CAPRATE menor al 25% es considerado saludable por la mayoría de las entidades financieras.<br>
+    {"<br><i>Si no ingresaste tu ingreso real, usamos el sueldo estimado recomendado calculado automáticamente para que el dividendo sea el 25% del ingreso.</i>" if ingreso_real == 0 else ""}
     </div>
-    """, unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
 # Evaluación de viabilidad (usa ingreso real o recomendado)
 st.markdown("### 🏠 Evaluación rápida de viabilidad")
