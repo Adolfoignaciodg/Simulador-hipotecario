@@ -5,7 +5,7 @@ import requests
 import plotly.graph_objects as go
 
 # --- Estilo Premium ---
-st.set_page_config(page_title="🏡 Simulador Hipotecario Avanzado by Adolf", layout="wide")
+st.set_page_config(page_title="Simulador Hipotecario 🏡", layout="wide")
 st.markdown("""
 <style>
 h1 {
@@ -63,7 +63,7 @@ input[type="number"], .stSlider, select {
 """, unsafe_allow_html=True)
 
 # --- Título principal ---
-st.markdown("<h1 style='text-align: center;'>🏡 Simulador Hipotecario Avanzado <span style='font-size: 20px;'>by Adolf</span></h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>Simulador Hipotecario 🏡 <span style='font-size: 20px;'>by Adolf</span></h1>", unsafe_allow_html=True)
 st.markdown("---")
 
 # --- Sidebar: Indicadores Económicos ---
