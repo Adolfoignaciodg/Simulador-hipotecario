@@ -83,7 +83,7 @@ with st.sidebar:
         tpm = 6.0
 
 # --- Modo de simulación ---
-modo = st.radio("Selecciona tu modo", ["Comprador para vivir", "Inversionista", "🧠 Recomendador Inteligente"])
+modo = st.radio("Selecciona tu modo", ["Vivienda", "Inversión", "🧠 IA"])
 
 # --- Función para manejar beneficios/subsidios en modo Comprador ---
 def manejar_beneficios():
