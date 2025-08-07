@@ -322,19 +322,20 @@ with st.expander("📅 Ver tabla de amortización"):
     st.download_button("📥 Descargar tabla CSV", data=df.to_csv(index=False), file_name="amortizacion.csv")
 
 st.markdown("---")
+
 st.subheader("💼 Análisis de Capacidad de Repago (CAPRATE)")
 
 ingreso_real = st.number_input(
     "Ingresa tu ingreso mensual líquido (CLP) para calcular CAPRATE (opcional)", min_value=0, step=10000, format="%d"
 )
 
-# Usamos el ingreso real si existe, si no, el recomendado (sueldo estimado)
+# Determina el ingreso a mostrar
 if ingreso_real > 0:
     ingreso_usado = ingreso_real
     ingreso_label = "tu ingreso mensual líquido declarado"
 else:
     ingreso_usado = sueldo_recomendado
-    ingreso_label = f"el sueldo estimado recomendado (**~${sueldo_recomendado:,.0f} CLP**)"
+    ingreso_label = f"sueldo estimado recomendado (~${sueldo_recomendado:,.0f} CLP)"
 
 caprate = dividendo_clp / ingreso_usado * 100
 
@@ -342,52 +343,42 @@ st.metric("📊 CAPRATE (Dividendo / Ingreso mensual)", f"{caprate:.2f} %")
 
 st.markdown(
     f"""
-    <div style="background-color:#f0f4f8; border-left: 4px solid #2E86C1; padding: 10px; margin-top: 10px; border-radius: 5px;">
-    <strong>¿Qué es este CAPRATE?</strong><br>
-    Es el porcentaje que representa el dividendo mensual del crédito hipotecario respecto a <b>{ingreso_label}</b>.<br>
-    Sirve para medir qué tanto afecta el crédito a tu capacidad de pago mensual.<br>
-    Un CAPRATE menor al 25% es considerado saludable por la mayoría de las entidades financieras.<br>
-    {"<br><i>Si no ingresaste tu ingreso mensual líquido, usamos el sueldo estimado recomendado calculado automáticamente para que el dividendo sea el 25% del ingreso.</i>" if ingreso_real == 0 else ""}
+    <div style="background-color:#f5f7fa; border-left: 4px solid #3498db; padding: 12px; margin: 12px 0 0 0; border-radius: 6px;">
+    <b>¿Qué es el CAPRATE?</b><br>
+    El CAPRATE indica qué porcentaje de {ingreso_label} representa el dividendo mensual del crédito hipotecario.<br>
+    Un CAPRATE menor a 25% generalmente se considera saludable por los bancos.<br>
+    {"<i>Si no ingresaste tu ingreso mensual líquido, usamos un sueldo estimado recomendado para que el dividendo sea el 25% de ese ingreso.</i>" if ingreso_real == 0 else ""}
     </div>
     """,
     unsafe_allow_html=True
 )
 
-# Mensaje especial si el ingreso declarado es menor al recomendado
+# Alerta si el ingreso es menor al recomendado
 if ingreso_real > 0 and ingreso_real < sueldo_recomendado:
     st.warning(
-        f"⚠️ Tu ingreso mensual líquido declarado (**~${ingreso_real:,.0f} CLP**) es menor al sueldo estimado recomendado "
-        f"(**~${sueldo_recomendado:,.0f} CLP**) para este crédito. Evalúa ajustar el monto del crédito, aumentar el pie inicial o considerar plazos más largos para mejorar la viabilidad financiera."
+        f"Tu ingreso mensual declarado (${ingreso_real:,.0f} CLP) es menor al sueldo estimado recomendado (${sueldo_recomendado:,.0f} CLP) para este crédito. Considera ajustar el monto, aumentar el pie o extender el plazo."
     )
 
-# Evaluación de viabilidad (usa ingreso real o recomendado)
+# Evaluación de viabilidad
 st.markdown("### 🏠 Evaluación rápida de viabilidad")
 if caprate <= 25 and pie_uf / precio_uf >= 0.2:
     st.success(
-        f"✅ Viable: El dividendo estimado es {dividendo_clp:,.0f} CLP, "
-        f"que es un {caprate:.1f}% de {ingreso_label} "
-        f"(**~${ingreso_usado:,.0f} CLP**). "
-        f"El sueldo estimado recomendado para este crédito es **~${sueldo_recomendado:,.0f} CLP**. "
-        f"Además, el pie cubre un {pie_uf/precio_uf:.1%} del precio, lo que es saludable."
+        f"Dividendo estimado: ${dividendo_clp:,.0f} CLP ({caprate:.1f}% de {ingreso_label}).\n"
+        f"El pie cubre {pie_uf/precio_uf:.1%} del precio, lo que es saludable."
     )
 elif caprate > 25 and pie_uf / precio_uf < 0.2:
     st.warning(
-        f"⚠️ Riesgo alto: El dividendo mensual representa un {caprate:.1f}% de {ingreso_label} "
-        f"(**~${ingreso_usado:,.0f} CLP**). "
-        f"El sueldo estimado recomendado para este crédito es **~${sueldo_recomendado:,.0f} CLP**. "
-        f"El pie inicial es menor al 20% recomendado. Considera aumentar el pie o reducir el monto del crédito."
+        f"Riesgo alto: El dividendo representa {caprate:.1f}% de {ingreso_label}. El pie inicial es menor al 20% recomendado. Considera aumentar el pie o reducir el monto."
     )
 elif caprate > 25:
     st.warning(
-        f"⚠️ Cuidado: El dividendo mensual representa un {caprate:.1f}% de {ingreso_label} "
-        f"(**~${ingreso_usado:,.0f} CLP**), lo que supera el 25% recomendado para evitar riesgo financiero. "
-        f"El sueldo estimado recomendado para este crédito es ~${sueldo_recomendado:,.0f} CLP."
+        f"Advertencia: El dividendo mensual representa {caprate:.1f}% de {ingreso_label}, superando el 25% recomendado para evitar riesgo financiero."
     )
 else:
     st.info(
-        f"ℹ️ El pie cubre solo un {pie_uf/precio_uf:.1%} del precio total, considera aumentarlo para reducir el crédito y las cuotas."
+        f"El pie cubre solo {pie_uf/precio_uf:.1%} del precio total. Considera aumentarlo para reducir el crédito y las cuotas."
     )
     st.markdown(
-        f"💡 El sueldo estimado recomendado para este crédito es: **~${sueldo_recomendado:,.0f} CLP"
-        f"(este valor se calcula automáticamente para que el dividendo mensual no supere el 25% del ingreso)."
+        f"<i>Sueldo estimado recomendado para este crédito: ${sueldo_recomendado:,.0f} CLP (calculado para que el dividendo no supere el 25% del ingreso).</i>",
+        unsafe_allow_html=True
     )
